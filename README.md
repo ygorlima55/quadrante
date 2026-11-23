@@ -21,7 +21,8 @@ Você solta a planilha numa página do navegador, o R confere os dados, roda as 
 Cada figura tem **outras formas** de apresentar o mesmo resultado, **títulos editáveis** e a caixa **No relatório**. No fim, o programa monta uma pasta com as figuras numeradas e uma planilha única com todas as tabelas marcadas.
 
 ## Instalação (Windows)
-1. Baixe o programa: botão verde **Code → Download ZIP** nesta página e descompacte numa pasta (por exemplo, `Documentos\quadrante`).
+1. Baixe a versão mais recente na página **[Releases](../../releases/latest)** → **Source code (zip)**, ou pelo botão verde **Code → Download ZIP** nesta página, e descompacte numa pasta (por exemplo, `Documentos\quadrante`).
+   - Já tem uma versão antiga? Descompacte a nova em outra pasta e copie para ela a sua pasta `levantamentos` (e `biblioteca`, se usar). Depois rode o `instalar.cmd` da pasta nova, que refaz o atalho.
 2. Dois cliques em **`instalar.cmd`**. Ele confere se o computador tem:
    - o **R** (4.3 ou mais novo);
    - o **Python 3**.
