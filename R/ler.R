@@ -71,6 +71,14 @@ grupo_padrao <- function(x) {
 
 `%||%` <- function(a, b) if (is.null(a) || length(a) == 0 || (length(a) == 1 && !is.list(a) && is.na(a))) b else a
 
+# Prefixo interno separa medidas ambientais dos campos conhecidos do cadastro.
+catalogo_gradientes <- function(pontos) {
+  colunas <- grep("^amb[.]", names(pontos), value = TRUE)
+  nomes <- substring(colunas, 5L)
+  ids <- vapply(nomes, function(nm) paste0("amb_", rlang::hash(enc2utf8(nm))), character(1), USE.NAMES = FALSE)
+  data.frame(chave = ids, nome = nomes, stringsAsFactors = FALSE)
+}
+
 ler_planilha <- function(arquivo) {
   tmp <- copiar_planilha(arquivo)
   abas <- tryCatch(readxl::excel_sheets(tmp), error = function(e)
@@ -159,7 +167,7 @@ ler_planilha <- function(arquivo) {
       h <- which(apply(p, 1, function(r) any(grepl("sitio|ponto", sem_acento(r)))))[1]
       if (!is.na(h)) { names(p) <- norm_txt(unlist(p[h, ])); p <- p[-(1:h), , drop = FALSE] }
     }
-    cp <- acha_coluna(names(p), c("sitio", "ponto"))
+    cp <- acha_coluna(names(p), c("^ponto$", "^sitio$", "sitio", "ponto"))
     cf <- acha_coluna(names(p), c("fitofision", "ambiente", "habitat"))
     cc <- acha_coluna(names(p), c("coorden"))
     cm <- acha_coluna(names(p), c("metodo"))
@@ -176,6 +184,16 @@ ler_planilha <- function(arquivo) {
         grupo_amostral = if (!is.na(cg)) norm_txt(p[[cg]]) else NA,
         esforco = if (!is.na(ce)) suppressWarnings(as.numeric(gsub(",", ".", p[[ce]]))) else NA,
         stringsAsFactors = FALSE)
+      extras <- setdiff(seq_along(p), c(cp, cf, cc, cm, cg, ce, ccam))
+      rotulos <- norm_txt(names(p))
+      for (j in extras) {
+        nm <- rotulos[j]
+        if (is.na(nm) || !nzchar(nm) || sum(rotulos == nm, na.rm = TRUE) != 1L) next
+        v <- trimws(p[[j]])
+        v[toupper(v) %in% c("", "-", "NA", "N/A", "ND")] <- NA_character_
+        x <- suppressWarnings(as.numeric(chartr(",", ".", v)))
+        if (any(is.finite(x)) && all(is.na(v) | is.finite(x))) pontos[[paste0("amb.", nm)]] <- x
+      }
       if (!is.na(ccam)) pontos$campanha <- norm_txt(p[[ccam]])
       pontos <- pontos[!is.na(pontos$nome) & nzchar(pontos$nome), , drop = FALSE]
     }

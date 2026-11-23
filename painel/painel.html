@@ -386,6 +386,8 @@ aside.editor{border-radius:26px;background:var(--vidro);border-color:var(--vidro
 .edtit .itens-leg .it{display:flex;align-items:center;gap:6px}.edtit .itens-leg .q{width:16px;height:16px;border-radius:4px;flex:none;border:1px solid rgba(0,0,0,.15)}.edtit .itens-leg input[type=text]{flex:1;min-width:0}
 .edtit .itens-leg input.cor-it{width:30px;height:24px;padding:0;border:1px solid rgba(0,0,0,.18);border-radius:5px;background:none;cursor:pointer;flex:none}
 .legcores .it.fora{opacity:.45;text-decoration:line-through}
+.figr .quadro.editavel{overflow:visible!important}.dicafig{position:absolute;display:none;z-index:15;pointer-events:none;background:rgba(20,22,21,.9);color:#fff;font-size:12px;padding:4px 8px;border-radius:6px;max-width:250px}
+.popfig{position:absolute;z-index:20;background:#fff;color:#1d1d1d;border:1px solid rgba(0,0,0,.15);border-radius:10px;padding:10px 12px;box-shadow:0 10px 28px rgba(0,0,0,.28);width:260px;font-size:13px;display:flex;flex-direction:column;gap:7px}.popfig label{display:flex;align-items:center;gap:8px}.popfig input[type=text],.popfig select{flex:1;min-width:0;width:100%;color:#1d1d1d;background:#fff;border:1px solid #ccc;border-radius:6px;padding:4px 6px}.popfig input[type=color]{width:44px;height:28px;padding:0;border:1px solid #ccc;border-radius:6px;cursor:pointer}.popfig .bts{display:flex;gap:6px;justify-content:flex-end}.popfig .nota{margin:0;font-size:11.5px;color:#666}
 .ctx .camp{border:1px solid var(--fio-2);border-radius:16px;padding:10px 12px;margin:8px 0;background:var(--cartao)}
 .ctx .cab-camp{display:flex;gap:10px;align-items:center}.ctx .cab-camp input{font:inherit;font-weight:600;border:0;border-bottom:1px solid var(--fio);background:transparent;color:inherit;padding:2px 0}
 .ctx .grade-camp{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 12px;margin:8px 0}
@@ -1007,6 +1009,7 @@ function figuraR(alvo, chave, legenda){
   f.appendChild(legendaCores(chave, `${tag}_${chave}`));
   f.appendChild(editorTitulos(chave));
   const q = el("div", {class:"quadro"}); q.innerHTML = `<img src="figuras/${arq}?v=${versao}" alt="${esc(tit)}"><div class="aviso-r"><canvas width="160" height="160" aria-hidden="true"></canvas><span>Redesenhando</span></div>`; f.appendChild(q);
+  editarNaFigura(q, chave, `${tag}_${chave}`, tit);
   if (formas.length > 1){
     const fz = el("div", {class:"formas naoimprime"}), lista = el("div", {class:"lista"});
     fz.appendChild(el("div", {class:"rotulo", style:"margin-bottom:8px"}, "Outras formas desta figura"));
@@ -1039,6 +1042,69 @@ function legendaCores(chave, base){
     if (E.cores_fig[chave]) { const v = el("button", {class:"volta"}, "cores padrão"); v.onclick = () => { delete E.cores_fig[chave]; salvaE(); redesenhar(chave); }; box.appendChild(v); }
   });
   return box;
+}
+// edição direto na figura (21/11/2026, pedido do usuário): clicar numa cor da figura abre o item (cor, nome, tirar);
+// clicar no alto, embaixo ou à esquerda abre o título e os nomes dos eixos. O R redesenha só esta figura.
+function editarNaFigura(q, chave, base, tit){
+  if (!LID) return;
+  const img = q.querySelector("img"), cv = document.createElement("canvas"), cx = cv.getContext("2d", {willReadFrequently:true});
+  let itens = [], pronto = false, pop = null;
+  q.classList.add("editavel");
+  const dica = el("div", {class:"dicafig naoimprime"}); q.appendChild(dica);
+  fetch(`figuras/${base}.cores.json?v=${versao}`, {cache:"no-store"}).then(r => r.ok ? r.json() : null).catch(() => null).then(v => { itens = arr(v).filter(i => i && i.indice); });
+  const carrega = () => { try { cv.width = img.naturalWidth; cv.height = img.naturalHeight; cx.drawImage(img, 0, 0); pronto = cv.width > 0; } catch (e) { pronto = false; } };
+  if (img.complete) carrega(); img.addEventListener("load", carrega);
+  const rgb = h => { h = String(h).replace("#", ""); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); };
+  const ponto = ev => { const r = img.getBoundingClientRect(); return { fx: (ev.clientX - r.left) / r.width, fy: (ev.clientY - r.top) / r.height, px: ev.clientX - q.getBoundingClientRect().left, py: ev.clientY - q.getBoundingClientRect().top }; };
+  // item cuja cor (cheia ou clareada pelo fundo, como nas faixas) bate com o pixel clicado
+  const achaItem = (fx, fy) => {
+    if (!pronto || !itens.length) return null;
+    const x = Math.round(fx * cv.width), y = Math.round(fy * cv.height); if (x < 0 || y < 0 || x >= cv.width || y >= cv.height) return null;
+    const p = cx.getImageData(x, y, 1, 1).data, fd = cx.getImageData(2, 2, 1, 1).data; let melhor = null, dm = 40;
+    for (const it of itens) { const c = rgb((E.cores_fig[chave] || [])[it.indice - 1] || it.cor);
+      for (const a of [1, .45, .35, .28, .22, .15]) { const m = c.map((v, i) => v * a + fd[i] * (1 - a)), d = Math.abs(m[0] - p[0]) + Math.abs(m[1] - p[1]) + Math.abs(m[2] - p[2]);
+        if (d < dm) { dm = d; melhor = it; } } }
+    return melhor;
+  };
+  const regiao = (fx, fy) => fy < .12 ? "titulo" : fy > .93 ? "x" : fx < .07 ? "y" : null;
+  const NOMES_R = {titulo:"o título", x:"o nome do eixo horizontal", y:"o nome do eixo vertical"};
+  img.addEventListener("mousemove", ev => { if (pop) return; const {fx, fy, px, py} = ponto(ev), it = achaItem(fx, fy), rg = it ? null : regiao(fx, fy);
+    const aj = E.ajustes[chave] || {}, t = it ? `${(aj.nomes || {})[it.rotulo] || it.rotulo}: clique para mudar cor, nome ou tirar` : rg ? `Clique para reescrever ${NOMES_R[rg]}` : "";
+    img.style.cursor = t ? "pointer" : "default"; dica.textContent = t; dica.style.display = t ? "block" : "none"; dica.style.left = Math.min(px + 14, q.clientWidth - 260) + "px"; dica.style.top = (py + 16) + "px"; });
+  img.addEventListener("mouseleave", () => { dica.style.display = "none"; });
+  const fecha = () => { if (pop) { pop.remove(); pop = null; } };
+  img.addEventListener("click", ev => {
+    fecha(); const {fx, fy, px, py} = ponto(ev), it = achaItem(fx, fy), rg = it ? null : regiao(fx, fy); if (!it && !rg) return;
+    dica.style.display = "none"; pop = el("div", {class:"popfig naoimprime"});
+    pop.style.left = Math.max(6, Math.min(px - 20, q.clientWidth - 280)) + "px"; pop.style.top = Math.max(6, Math.min(py + 12, q.clientHeight - 190)) + "px";
+    const aj = E.ajustes[chave] || {};
+    if (it) {
+      const corAt = ((E.cores_fig[chave] || [])[it.indice - 1] || it.cor).toLowerCase(), nomeAt = (aj.nomes || {})[it.rotulo] || it.rotulo;
+      pop.innerHTML = `<b>${esc(it.rotulo)}</b><label>Cor <input type="color" data-p="cor" value="${esc(corAt)}"></label><label>Nome <input type="text" data-p="nome" value="${esc(nomeAt)}"></label>` +
+        `<label class="ck"><input type="checkbox" data-p="tira"> Tirar da figura</label><div class="bts"><button class="forte" data-p="ok">Aplicar</button><button data-p="nao">Cancelar</button></div>`;
+      pop.querySelector('[data-p="ok"]').onclick = () => {
+        const cor = pop.querySelector('[data-p="cor"]').value, nome = pop.querySelector('[data-p="nome"]').value.trim(), tira = pop.querySelector('[data-p="tira"]').checked;
+        if (cor.toLowerCase() !== corAt) { const pal = (E.cores_fig[chave] || cores()).slice(); while (pal.length < it.indice) pal.push(cores()[pal.length] || "#888888"); pal[it.indice - 1] = cor; E.cores_fig[chave] = pal; }
+        const a = Object.assign({}, E.ajustes[chave] || {}), nm = Object.assign({}, a.nomes || {});
+        if (nome && nome !== it.rotulo) nm[it.rotulo] = nome; else delete nm[it.rotulo];
+        if (Object.keys(nm).length) a.nomes = nm; else delete a.nomes;
+        const rem = arr(a.remover).filter(r => r !== it.rotulo); if (tira) rem.push(it.rotulo); if (rem.length) a.remover = rem; else delete a.remover;
+        if (Object.keys(a).length) E.ajustes[chave] = a; else delete E.ajustes[chave];
+        fecha(); redesenhar(chave); };
+    } else {
+      const pad = (((H.titulos_padrao || {})[grupo] || {})[chave]) || {}, t = E.titulos[chave] || {};
+      const ini = rg === "titulo" ? (t.titulo || pad.titulo || tit || "") : (t[rg] || pad[rg] || "");
+      pop.innerHTML = `<b>Reescrever ${NOMES_R[rg]}</b><label><select data-p="qual">${Object.entries({titulo:"Título", x:"Eixo horizontal", y:"Eixo vertical"}).map(([k, n]) => `<option value="${k}" ${k === rg ? "selected" : ""}>${n}</option>`).join("")}</select></label>` +
+        `<input type="text" data-p="txt" value="${esc(ini)}"><p class="nota">Em branco volta ao texto padrão.</p><div class="bts"><button class="forte" data-p="ok">Aplicar</button><button data-p="nao">Cancelar</button></div>`;
+      const sel = pop.querySelector('[data-p="qual"]'), txt = pop.querySelector('[data-p="txt"]');
+      sel.onchange = () => { const k = sel.value; txt.value = k === "titulo" ? (t.titulo || pad.titulo || tit || "") : (t[k] || pad[k] || ""); };
+      const ok = () => { const k = sel.value, v = txt.value.trim(), n = Object.assign({}, E.titulos[chave] || {});
+        if (v && v !== (k === "titulo" ? pad.titulo : pad[k])) n[k] = v; else delete n[k];
+        if (Object.keys(n).length) E.titulos[chave] = n; else delete E.titulos[chave]; fecha(); redesenhar(chave); };
+      pop.querySelector('[data-p="ok"]').onclick = ok; txt.addEventListener("keydown", e => { if (e.key === "Enter") ok(); if (e.key === "Escape") fecha(); });
+    }
+    pop.querySelector('[data-p="nao"]').onclick = fecha; q.appendChild(pop); const foco = pop.querySelector('input[type="text"]'); foco && foco.focus();
+  });
 }
 // títulos, eixos, legenda e elementos de uma figura, editados ali mesmo; o R redesenha só ela (19/11/2026: legenda e elementos)
 const ELEMENTOS = [["legenda", "Legenda"], ["titulo_legenda", "Título da legenda"], ["titulo", "Título"], ["titulo_x", "Nome do eixo horizontal"], ["titulo_y", "Nome do eixo vertical"],
@@ -1323,11 +1389,18 @@ function cartaoPedido(a){
   const c = el("div", {class:"cartao-pedido"}), fs = fatoresDisponiveis();
   c.innerHTML = `<b>${esc(a.nome)}</b><p>${esc(a.responde)}</p><p class="nota">Pacote <code>${esc(a.pacote)}</code> · função <code>${esc(a.funcao)}</code></p><div class="rotulo">Pressupostos que o R vai conferir nos seus dados</div><ul>${a.pressupostos.map(p => `<li>${esc(p)}</li>`).join("")}</ul>`;
   const lin = el("div", {class:"linha-pedido"}); let sf = null, sv = null;
-  if (a.usa_fator !== "nao") { sf = el("select"); if (a.usa_fator === "opcional") sf.appendChild(el("option", {value:""}, "sem comparar grupos"));
+  const gradientes = arr(H.gradientes);
+  if (a.usa_fator === "gradiente") {
+    sf = el("select", {"aria-label":"Variável ambiental"});
+    for (const v of gradientes) sf.appendChild(el("option", {value:v.chave}, esc(v.nome)));
+    if (gradientes.length) lin.appendChild(sf);
+    else lin.appendChild(el("span", {class:"nota"}, "Inclua uma coluna numérica na aba Pontos Amostrais, como Temperatura (°C), e recalcule o levantamento."));
+  } else if (a.usa_fator !== "nao") { sf = el("select"); if (a.usa_fator === "opcional") sf.appendChild(el("option", {value:""}, "sem comparar grupos"));
     fs.forEach(([v, n]) => sf.appendChild(el("option", {value:v}, "Comparar por " + n.toLowerCase())));
     if (a.usa_fator === "sim" && !fs.length) lin.appendChild(el("span", {class:"nota"}, "Sem fator para comparar neste levantamento (fitofisionomia, grupo amostral, campanhas ou estação): o R vai recusar.")); else lin.appendChild(sf); }
   if (a.usa_variavel) { sv = el("select"); sv.innerHTML = '<option value="riqueza">Riqueza por unidade</option><option value="abundancia">Abundância por unidade</option>'; lin.appendChild(sv); }
   const b = el("button", {class:"forte"}, "Conferir pressupostos e rodar"), cx = el("div", {class:"tarefa"});
+  b.disabled = a.usa_fator === "gradiente" && !gradientes.length;
   b.onclick = () => { b.disabled = true; b.textContent = "O R está conferindo...";
     api("pedido", {analise:a.id, grupo, fator:sf ? sf.value : "", variavel:sv ? sv.value : "riqueza"}).then(j => {
       if (j.erro) { avisoTopo(j.erro); b.disabled = false; b.textContent = "Conferir pressupostos e rodar"; return; }
@@ -1585,6 +1658,7 @@ const SECOES = [
   ["similaridade", "Similaridade", "pontos parecidos e beta"],
   ["fitofisionomias", "Fitofisionomias", "o que cada ambiente tem"],
   ["dominancia", "Dominância", "ranque das espécies"],
+  ["secundarios", "Dados secundários", "literatura da região e o campo"],
   ["laudo", "Para o laudo", "interesse, métodos, esforço"],
   ["campanhas", "Campanhas", "o que mudou entre campanhas"],
   ["pedidos", "Pedir análise", "o R confere e roda"],
@@ -1778,6 +1852,116 @@ function render(){
       if (!pp.length) s9.appendChild(el("p", {class:"pergunta"}, "Só há uma fitofisionomia."));
       else tabela(s9, "fito_pares", "Similaridade entre fitofisionomias (Jaccard)", [{t:"Par", f:r => `${esc(r.fito_a)} × ${esc(r.fito_b)}`, csv:r => r.fito_a + " x " + r.fito_b}, {t:"Em comum", k:"comuns", num:1}, {t:"Só na 1ª", k:"so_a", num:1}, {t:"Só na 2ª", k:"so_b", num:1}, {t:"Jaccard", f:r => nf(r.jaccard, 2), num:1}], pp);
       if (F.componentes && arr(F.componentes.pares).length) tabela(s9, "fito_pares_siglas", "Similaridade entre siglas (Jaccard)", [{t:"Par", f:r => `${esc(r.fito_a)} × ${esc(r.fito_b)}`, csv:r => r.fito_a + " x " + r.fito_b}, {t:"Em comum", k:"comuns", num:1}, {t:"Só na 1ª", k:"so_a", num:1}, {t:"Só na 2ª", k:"so_b", num:1}, {t:"Jaccard", f:r => nf(r.jaccard, 2), num:1}], arr(F.componentes.pares)); }
+  }
+
+  // ---- Dados secundários (21/11/2026): literatura da região no raio salvo e comparação com o campo
+  {
+    const SC = H.secundarios || {}, A = SC.analise, sS = secao("secundarios", "Dados secundários", "Espécies já publicadas para a região (literatura no raio) e o que o campo confirmou.");
+    const sug = SC.centro_sugerido || {}, reg = SC.regiao || {};
+    const fm = el("div", {class:"tabbox naoimprime", style:"padding:16px 18px;margin-bottom:16px"});
+    const val = (v, d) => v == null || v === "" ? d : v;
+    fm.innerHTML = `<div class="rotulo" style="margin-bottom:8px">Região da busca</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px 16px;align-items:end">
+        <label>Latitude<br><input id="secLat" type="number" step="0.000001" style="width:9em" value="${esc(String(val(reg.lat, val(sug.lat, ""))))}"></label>
+        <label>Longitude<br><input id="secLon" type="number" step="0.000001" style="width:9em" value="${esc(String(val(reg.lon, val(sug.lon, ""))))}"></label>
+        <label>Raio (km)<br><input id="secRaio" type="number" min="1" max="500" step="1" style="width:6em" value="${esc(String(val(reg.raio_km, 50)))}"></label>
+        <label>Município (opcional)<br><input id="secMun" type="text" style="width:12em" value="${esc(val(reg.municipio, ""))}"></label>
+        <label>UF<br><input id="secUf" type="text" maxlength="2" style="width:3.5em" value="${esc(val(reg.uf, ""))}"></label>
+        <label>Datum<br><input id="secDatum" type="text" style="width:8em" value="${esc(val(reg.datum, "SIRGAS 2000"))}"></label>
+      </div>
+      <p class="pergunta" id="secOrig" style="margin:10px 0 0"></p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"><button id="secPontos">Usar o centro dos pontos</button><button id="secKml">Carregar KML/KMZ da área</button><input id="secKmlArq" type="file" accept=".kml,.kmz" style="display:none"><button id="secSalvar" class="acento">Salvar região</button></div>`;
+    sS.appendChild(fm);
+    const orig = fm.querySelector("#secOrig");
+    let origem = reg.origem || (sug.lat != null ? "pontos" : "digitado");
+    orig.innerHTML = reg.salvo_em ? `Região salva em ${esc(reg.salvo_em)}.` : sug.lat != null ? `Centro sugerido: média de ${sug.n_pontos} ponto(s) amostral(is). Confira e salve.`
+      : `<b>Sem centro sugerido</b>: ${esc(sug.problema || "a planilha não tem coordenadas dos pontos")}. Digite a latitude e a longitude do centro (graus decimais, sul e oeste negativos).`;
+    if (sug.problema && sug.lat != null) orig.innerHTML += ` Atenção: ${esc(sug.problema)}.`;
+    if (reg.area) orig.innerHTML += ` Centro tirado do KML <b>${esc(reg.area.arquivo || "")}</b>${reg.area.nome ? " (" + esc(reg.area.nome) + ")" : ""}: ${esc(reg.area.tipo || "")}${reg.area.area_ha ? ", " + nf(reg.area.area_ha, 0) + " ha" : ""}. O raio é medido a partir desse centro.`;
+    const kIn = fm.querySelector("#secKmlArq");
+    fm.querySelector("#secKml").onclick = () => { if (!LID) { avisoTopo("Abra o painel pelo Quadrante para carregar o KML.", "erro"); return; } kIn.click(); };
+    kIn.onchange = () => { const f = kIn.files[0]; if (!f) return;
+      f.arrayBuffer().then(b => fetch(`/api/l/${LID}/area?nome=${encodeURIComponent(f.name)}`, {method:"POST", body:b}))
+        .then(r => r.status === 404 ? [false, {erro:"O Quadrante aberto é uma versão anterior, sem a leitura do KML. Feche o Quadrante e abra de novo pelo atalho."}] : r.json().then(j => [r.ok, j]))
+        .then(([ok, j]) => { if (!ok) { avisoTopo(j.erro || "Não consegui ler o KML.", "erro"); return; }
+          fm.querySelector("#secLat").value = j.lat; fm.querySelector("#secLon").value = j.lon; origem = "kml";
+          orig.innerHTML = `Centro tirado do KML <b>${esc(f.name)}</b>${j.nome ? " (" + esc(j.nome) + ")" : ""}: ${esc(j.tipo)}${j.area_ha ? ", " + nf(j.area_ha, 0) + " ha" : ""}. Região salva com esse centro; confira o raio e salve se mudar.`;
+          avisoTopo("KML carregado: o centro da área virou o centro da busca.", "ok"); })
+        .catch(() => avisoTopo("Não consegui falar com o Quadrante.", "erro")); };
+    const bP = fm.querySelector("#secPontos");
+    if (sug.lat == null) bP.disabled = true;
+    bP.onclick = () => { fm.querySelector("#secLat").value = sug.lat; fm.querySelector("#secLon").value = sug.lon; origem = "pontos"; };
+    ["#secLat", "#secLon"].forEach(q => fm.querySelector(q).addEventListener("input", () => { origem = "digitado"; }));
+    fm.querySelector("#secSalvar").onclick = () => {
+      if (!LID) { avisoTopo("Abra o painel pelo Quadrante para salvar a região.", "erro"); return; }
+      const g = q => fm.querySelector(q).value;
+      const corpo = {lat: parseFloat(g("#secLat")), lon: parseFloat(g("#secLon")), raio_km: parseFloat(g("#secRaio")), origem: g("#secMun").trim() && origem === "digitado" ? "municipio" : origem,
+                     municipio: g("#secMun").trim(), uf: g("#secUf").trim(), datum: g("#secDatum").trim()};
+      fetch(`/api/l/${LID}/regiao`, {method:"POST", body: JSON.stringify(corpo)}).then(r => r.status === 404 ? [false, {erro:"O Quadrante aberto é uma versão anterior. Feche o Quadrante e abra de novo pelo atalho."}] : r.json().then(j => [r.ok, j]))
+        .then(([ok, j]) => { if (ok) { H.secundarios = Object.assign({}, SC, {regiao: Object.assign(corpo, {salvo_em: "agora"})}); avisoTopo("Região salva. Agora rode /dados-secundarios no assistente.", "ok"); orig.innerHTML = "Região salva agora."; }
+                             else avisoTopo(j.erro || "Não consegui salvar a região.", "erro"); })
+        .catch(() => avisoTopo("Não consegui falar com o Quadrante.", "erro"));
+    };
+    const como = el("details", {class:"naoimprime", style:"margin-bottom:16px"});
+    como.innerHTML = `<summary>Como preencher os dados secundários</summary>
+      <p>1. Salve a região acima. 2. No assistente, rode <code>/dados-secundarios ${esc(LID || "<id do levantamento>")}</code>: o agente consulta a biblioteca de artigos, busca na região, lê os artigos abertos, revisa os nomes e preenche a planilha.
+      3. Clique em <b>Rodar de novo</b> para ver os resultados aqui.</p>
+      <p>Sem o agente: preencha à mão a planilha <code>secundarios/dados_secundarios.xlsx</code> desta pasta (a aba Leia-me explica cada coluna). Linhas marcadas <b>revisado_a_mao = sim</b> nunca são mudadas pelo agente.</p>`;
+    sS.appendChild(como);
+    for (const a of arr(SC.avisos)) sS.appendChild(el("div", {class:"aviso"}, `<span><span class="pill ${esc(a.nivel)}">${esc(a.nivel)}</span></span><div><b>${esc(a.aba)}${a.linha ? ", linha " + esc(a.linha) : ""}</b>${esc(a.problema)}</div>`));
+    if (SC.erro) sS.appendChild(el("div", {class:"aviso"}, `<span><span class="pill erro">erro</span></span><div><b>A planilha de dados secundários não pôde ser lida</b>${esc(SC.erro)}. Feche a planilha no Excel e confira o arquivo secundarios/dados_secundarios.xlsx; depois clique em Rodar de novo.</div>`));
+    if (!A) { if (!SC.erro) sS.appendChild(el("p", {class:"pergunta"}, "Ainda não há obras na planilha de dados secundários deste levantamento.")); }
+    else {
+      const R = A.resumo || {};
+      const n5 = el("div", {class:"numeros"});
+      n5.innerHTML = [[R.obras_usadas, "obras usadas", `${R.obras_independentes} independentes`], [R.riqueza_secundaria, "espécies na literatura", ""],
+        [R.riqueza_campo, "espécies no campo", R.a_confirmar ? `${R.a_confirmar} a confirmar` : ""], [R.pct_registrada_campo == null ? "–" : nf(R.pct_registrada_campo, 0) + "%", "da literatura achada em campo", `${R.em_ambos} espécies nas duas`]]
+        .map(([a, b, c], i) => `<div><div class="v ${i === 3 ? "ac" : ""}">${a}</div><div class="r">${b}</div><div class="nn">${c}</div></div>`).join("");
+      sS.appendChild(n5);
+      if (R.nao_lidas || R.fora_do_raio || R.obras_a_conferir) sS.appendChild(el("p", {class:"pergunta"}, `${R.nao_lidas} obra(s) dentro do raio ainda não lida(s), ${R.fora_do_raio} fora do raio e ${R.obras_a_conferir || 0} a conferir: não entram nos números.`));
+      let subS = store.get("herp.subS", "comparacao");
+      abas(sS, [["comparacao","Literatura e campo"],["tabela","Tabela para o laudo"],["descritivas","Descritivas"],["obras","Obras"],["especies","Espécies da literatura"]], subS, v => { store.set("herp.subS", v); render(); });
+      const figS = (chave, leg) => { const arq = (SC.figuras || {})[chave]; if (!arq) return;
+        const f = el("div", {class:"figr"}), topo = el("div", {class:"topo"}); topo.appendChild(el("span", {class:"tit"}, esc(leg)));
+        const acs = el("span", {class:"acs naoimprime"}), ba = el("a", {href:`figuras/${arq}`, target:"_blank"}); ba.appendChild(el("button", {}, "Abrir")); acs.appendChild(ba);
+        acs.appendChild(marcaRel("fig:sec:" + chave, {tipo:"fig", titulo:leg, arquivo:`figuras/${arq}`})); topo.appendChild(acs); f.appendChild(topo);
+        const q = el("div", {class:"quadro"}); q.innerHTML = `<img src="figuras/${arq}?v=${versao}" alt="${esc(leg)}">`; f.appendChild(q); sS.appendChild(f); };
+      const nomeEsp = r => `<i>${esc(r.nome)}</i>`;
+      if (subS === "comparacao"){ figS("sec_comparacao", "Espécies da literatura e do campo");
+        tabela(sS, "sec_comp", "Comparação com o campo", [{t:"Família", k:"familia"}, {t:"Espécie", f:nomeEsp, csv:r => r.nome, esp:1}, {t:"Situação", k:"situacao"}, {t:"Obras", k:"n_obras", num:1}, {t:"Códigos das obras", k:"obras"}], arr(A.comparacao), true); }
+      else if (subS === "tabela"){
+        const box = el("div", {class:"tabbox", style:"padding:14px 16px;overflow:auto"}), bar = el("div", {class:"naoimprime", style:"display:flex;gap:8px;margin-bottom:10px"});
+        const bc = el("button", {class:"acento"}, "Copiar tabela (cola no Word ou Excel com a formatação)"), ba = el("a", {href:"tabelas/11_tabela_especies_literatura.html", target:"_blank"});
+        ba.appendChild(el("button", {}, "Abrir em outra janela")); bar.appendChild(bc); bar.appendChild(ba); sS.appendChild(bar);
+        const alvo = el("div", {style:"background:#fff;color:#000;padding:10px;border-radius:4px"}, "Carregando a tabela..."); box.appendChild(alvo); sS.appendChild(box);
+        fetch(`tabelas/11_tabela_especies_literatura.html?v=${versao}`, {cache:"no-store"}).then(r => r.ok ? r.text() : Promise.reject()).then(h => {
+          const m = h.match(/<body>([\s\S]*)<\/body>/); alvo.innerHTML = m ? m[1] : h; })
+          .catch(() => { alvo.textContent = "A tabela ainda não foi gerada: clique em Rodar de novo."; });
+        bc.onclick = () => { const html = alvo.innerHTML, txt = alvo.innerText;
+          const ok = () => avisoTopo("Tabela copiada. Cole no Word ou no Excel (Ctrl+V).", "ok");
+          if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write)
+            navigator.clipboard.write([new ClipboardItem({"text/html": new Blob([html], {type:"text/html"}), "text/plain": new Blob([txt], {type:"text/plain"})})]).then(ok)
+              .catch(() => { const sel = getSelection(), rg = document.createRange(); rg.selectNodeContents(alvo); sel.removeAllRanges(); sel.addRange(rg); document.execCommand("copy"); sel.removeAllRanges(); ok(); });
+          else { const sel = getSelection(), rg = document.createRange(); rg.selectNodeContents(alvo); sel.removeAllRanges(); sel.addRange(rg); document.execCommand("copy"); sel.removeAllRanges(); ok(); } }; }
+      else if (subS === "descritivas"){
+        const n6 = el("div", {class:"numeros"});
+        n6.innerHTML = [[R.riqueza_anuros ?? "–", "anuros", ""], [R.riqueza_repteis ?? "–", "répteis", ""], [R.generos ?? "–", "gêneros", ""], [R.familias ?? "–", "famílias", ""]]
+          .map(([a, b, c]) => `<div><div class="v">${a}</div><div class="r">${b}</div><div class="nn">${c}</div></div>`).join("");
+        sS.appendChild(n6);
+        tabela(sS, "sec_grupo", "Por grupo", [{t:"Grupo", k:"grupo"}, {t:"Espécies", k:"especies", num:1}, {t:"Gêneros", k:"generos", num:1}, {t:"Famílias", k:"familias", num:1}, {t:"Estudos", k:"obras", num:1}], arr(A.por_grupo));
+        tabela(sS, "sec_reg_estudo", "Registros por estudo", [{t:"Estudo", f:r => `${esc(r.id_obra)} · ${esc(r.autor_ano || "")}`, csv:r => r.id_obra + " " + (r.autor_ano || "")}, {t:"Local", f:r => esc([r.local_estudo, r.municipios].filter(Boolean).join(", ")), csv:r => [r.local_estudo, r.municipios].filter(Boolean).join(", ")}, {t:"Registros", k:"n_registros", num:1}, {t:"Espécies", k:"riqueza", num:1}, {t:"Anuros", k:"anuros", num:1}, {t:"Répteis", k:"repteis", num:1}], arr(A.obras_resumo));
+        figS("sec_familias", "Espécies por família (anuros e répteis)");
+        tabela(sS, "sec_familias_t", "Famílias", [{t:"Grupo", k:"grupo"}, {t:"Família", k:"familia"}, {t:"Gêneros", k:"n_generos", num:1}, {t:"Espécies", k:"n_especies", num:1}], arr(A.familias), true);
+        tabela(sS, "sec_generos", "Gêneros", [{t:"Grupo", k:"grupo"}, {t:"Família", k:"familia"}, {t:"Gênero", f:r => `<i>${esc(r.genero)}</i>`, csv:r => r.genero}, {t:"Espécies", k:"n_especies", num:1}, {t:"Quais", f:r => `<i>${esc(r.especies)}</i>`, csv:r => r.especies}, {t:"Estudos", k:"n_obras", num:1}], arr(A.generos), true); }
+      else if (subS === "obras"){ figS("sec_obras_ano", "Obras por ano de publicação"); figS("sec_criterio", "Como cada obra entrou no raio");
+        tabela(sS, "sec_obras", "Obras usadas", [{t:"Código", k:"id_obra"}, {t:"Autor e ano", k:"autor_ano"}, {t:"Título", f:r => esc(r.titulo || r.referencia), csv:r => r.titulo || r.referencia}, {t:"Local do estudo", f:r => esc([r.local_estudo, r.municipios].filter(Boolean).join(", ") + (r.uf ? " (" + r.uf + ")" : "")), csv:r => [r.local_estudo, r.municipios, r.uf].filter(Boolean).join(", ")}, {t:"Distância (km)", f:r => r.distancia_km == null ? "–" : nf(r.distancia_km, 1), csv:r => r.distancia_km, num:1}, {t:"Critério", k:"criterio_raio"}, {t:"Registros", k:"n_registros", num:1}, {t:"Espécies", k:"riqueza", num:1}, {t:"Anuros", k:"anuros", num:1}, {t:"Répteis", k:"repteis", num:1}], arr(A.obras_resumo), true);
+        if (arr(A.nao_lidas).length) tabelaAuto(sS, "sec_nao_lidas", "Não lidas (baixe e solte na pasta biblioteca/pdfs)", A.nao_lidas);
+        if (arr(A.fora_do_raio).length) tabelaAuto(sS, "sec_fora", "Fora do raio (não entram)", A.fora_do_raio);
+        if (arr(A.a_conferir).length) tabelaAuto(sS, "sec_conferir", "A conferir: não deu para decidir se a área toca o raio (não entram até você marcar sim ou não)", A.a_conferir); }
+      else { figS("sec_mais_citadas", "Espécies mais citadas nas obras");
+        tabela(sS, "sec_esp", "Espécies dos dados secundários", [{t:"Grupo", k:"grupo_pad"}, {t:"Família", k:"familia"}, {t:"Espécie", f:nomeEsp, csv:r => r.nome, esp:1}, {t:"Autoria", k:"autoria"}, {t:"Nome comum", k:"nome_comum"}, {t:"Estudos", k:"n_obras", num:1}, {t:"Onde foi registrada", k:"locais"}, {t:"MMA", k:"ameaca_mma"}, {t:"IUCN", k:"ameaca_iucn"}, {t:"Estadual", k:"ameaca_estadual"}], arr(A.especies), true);
+        if (arr(A.duvidas).length) tabelaAuto(sS, "sec_duvidas", "Nomes com dúvida (fora da riqueza)", A.duvidas); }
+    }
   }
 
   // ---- Para o laudo (o que os termos de referência costumam pedir)

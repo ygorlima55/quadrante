@@ -26,7 +26,11 @@ for (i in seq_along(arqs)) {
   if (!is.null(L$pontos) && nrow(L$pontos)) {
     cadastro <- L$pontos
     cadastro$campanha <- camps[i]
-    pontos <- rbind(pontos, cadastro[, c("ponto", "nome", "fitofisionomia", "coordenadas", "metodo", "grupo_amostral", "esforco", "campanha")])
+    if (!is.null(pontos)) {
+      for (nm in setdiff(names(pontos), names(cadastro))) cadastro[[nm]] <- NA_real_
+      for (nm in setdiff(names(cadastro), names(pontos))) pontos[[nm]] <- NA_real_
+    }
+    pontos <- rbind(pontos, cadastro)
   }
   a_con <- L$aba_consolidada
   if (length(unique(L$registros$campanha)) > 1) stop("A planilha já contém mais de uma campanha: ", arqs[i])
@@ -76,9 +80,11 @@ cabeca <- function(d, h = 1) { n <- ifelse(is.na(unlist(d[h, ])), "", unlist(d[h
   d <- d[-(1:h), , drop = FALSE]; names(d) <- n; rownames(d) <- NULL; d }
 abas_saida <- list(`Dados consolidados` = cabeca(cons), `Dados brutos (campo)` = reg, Origem = data.frame(Nota = notas))
 if (!is.null(pontos) && nrow(pontos)) {
-  abas_saida <- c(list(`Pontos Amostrais` = data.frame(Ponto = pontos$nome, Fitofisionomia = pontos$fitofisionomia,
+  cadastro_saida <- data.frame(Ponto = pontos$nome, Fitofisionomia = pontos$fitofisionomia,
     Campanha = pontos$campanha, Coordenadas = pontos$coordenadas, Método = pontos$metodo,
-    `Grupo amostral` = pontos$grupo_amostral, `Esforço (h)` = pontos$esforco, check.names = FALSE)), abas_saida)
+    `Grupo amostral` = pontos$grupo_amostral, `Esforço (h)` = pontos$esforco, check.names = FALSE)
+  for (nm in catalogo_gradientes(pontos)$nome) cadastro_saida[[nm]] <- pontos[[paste0("amb.", nm)]]
+  abas_saida <- c(list(`Pontos Amostrais` = cadastro_saida), abas_saida)
 }
 write_xlsx(abas_saida, saida)
 cat(paste(notas, collapse = "\n"), "\n", nrow(reg), "registros gravados em", saida, "\n")

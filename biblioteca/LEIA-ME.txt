@@ -1,0 +1,7 @@
+Biblioteca de artigos do Quadrante (dados secundários), uma para todos os levantamentos.
+
+pdfs/       artigos já obtidos. Pode soltar aqui os PDFs baixados pelo CAPES ou ResearchGate: o agente cataloga na próxima rodada.
+obras.csv   índice (id_obra, DOI, título, referência, ano, local, se já foi lida).
+especies/   lista de espécies já extraída e revisada de cada obra (não precisa ler o PDF de novo).
+
+Não vai para o GitHub (direitos autorais dos PDFs).

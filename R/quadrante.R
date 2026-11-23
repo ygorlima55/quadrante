@@ -11,7 +11,7 @@ set.seed(20261117)
 
 args <- commandArgs(TRUE)
 aqui <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])))
-for (f in c("ler.R", "conferir.R", "desenho.R", "analises.R", "descritiva.R", "saida.R", "ajustes_fig.R", "saida_extra.R", "saida_novas.R", "campanhas.R", "fitofisionomias.R", "correcoes.R", "relatorio_fauna.R", "contexto.R")) source(file.path(aqui, f), encoding = "UTF-8")
+for (f in c("ler.R", "conferir.R", "desenho.R", "analises.R", "descritiva.R", "saida.R", "ajustes_fig.R", "saida_extra.R", "saida_novas.R", "campanhas.R", "fitofisionomias.R", "correcoes.R", "relatorio_fauna.R", "contexto.R", "secundarios.R")) source(file.path(aqui, f), encoding = "UTF-8")
 if (!length(args)) stop("Informe a planilha: Rscript quadrante.R planilha.xlsx")
 planilha <- normalizePath(args[1], mustWork = TRUE)
 base <- tools::file_path_sans_ext(basename(planilha))
@@ -98,6 +98,18 @@ progresso(96, "Gravando as tabelas em Excel")
 msg("Gravando tabelas em Excel...")
 tabs <- exportar_tabelas(L, conf, R, saida); unlink(file.path(saida, "tabelas_quadrante.xlsx"))
 tryCatch(exportar_relatorio_fauna(L, R, saida), error = function(e) msg("planilha 09 não gravada:", conditionMessage(e)))
+
+# dados secundários (literatura da região): secundarios/regiao.json (painel) e secundarios/dados_secundarios.xlsx (agente ou à mão)
+SEC <- tryCatch({
+  arq_sec <- file.path(saida, "secundarios", "dados_secundarios.xlsx"); arq_reg <- file.path(saida, "secundarios", "regiao.json")
+  regiao <- if (file.exists(arq_reg)) jsonlite::fromJSON(arq_reg) else NULL
+  if (!file.exists(arq_sec)) modelo_secundarios(arq_sec)
+  S <- ler_secundarios(arq_sec)
+  A_sec <- if (nrow(S$obras)) analisar_secundarios(S, L$registros, regiao) else NULL
+  F_sec <- if (!is.null(A_sec)) { progresso(97, "Dados secundários: figuras e tabelas"); exportar_secundarios(A_sec, saida); figuras_secundarios(A_sec, saida, estilo) } else list()
+  if (!is.null(A_sec)) msg("Dados secundários:", A_sec$resumo$obras_usadas, "obras,", A_sec$resumo$riqueza_secundaria, "espécies")
+  list(regiao = regiao, centro_sugerido = centro_pontos(L$pontos), analise = A_sec, figuras = F_sec, avisos = rbind(S$avisos, if (!is.null(A_sec)) A_sec$avisos))
+}, error = function(e) { msg("dados secundários não analisados:", conditionMessage(e)); list(centro_sugerido = tryCatch(centro_pontos(L$pontos), error = function(x) NULL), erro = conditionMessage(e)) })
 tabs <- list.files(file.path(saida, "tabelas"))
 
 ctx_arq <- file.path(saida, "contexto_campo.txt")
@@ -112,8 +124,8 @@ out <- list(
   meta = list(planilha = if (nzchar(Sys.getenv("HERP_NOME"))) Sys.getenv("HERP_NOME") else basename(planilha), caminho = planilha, gerado_em = format(Sys.time(), "%d/%m/%Y %H:%M"),
               r = R.version.string, pacotes = as.list(pacotes), abas = list(registros = L$aba_registros, pontos = L$aba_pontos, consolidada = L$aba_consolidada)),
   campanhas = L$campanhas, completados = L$completados, correcoes = correcoes, correcoes_aplicadas = L$correcoes_aplicadas,
-  tem_planilha_corrigida = file.exists(file.path(saida, "planilha_corrigida.xlsx")), pontos = L$pontos, distancias = dist, conferencia = conf, avisos = avisos, grupos = R, figuras = figs, formas = formas, catalogo = catalogo_todo(), tabelas = tabs,
-  estilo = estilo, titulos_padrao = tit_padrao, contexto = contexto, contexto_resumo = ctx_txt, leitura = leitura,
+  tem_planilha_corrigida = file.exists(file.path(saida, "planilha_corrigida.xlsx")), pontos = L$pontos, gradientes = catalogo_gradientes(L$pontos), distancias = dist, conferencia = conf, avisos = avisos, grupos = R, figuras = figs, formas = formas, catalogo = catalogo_todo(), tabelas = tabs,
+  estilo = estilo, titulos_padrao = tit_padrao, secundarios = SEC, contexto = contexto, contexto_resumo = ctx_txt, leitura = leitura,
   registros = L$registros[, c("linha_planilha", "ponto", "especie", "especie_completa", "familia", "grupo_pad", "vo", "av", "sem_forma", "total", "grupo", "ponto_original", intersect("alterado", names(L$registros)), if (!is.null(L$campanhas)) c("campanha", "ponto_campo"))]
 )
 js <- jsonlite::toJSON(out, auto_unbox = TRUE, na = "null", digits = NA, dataframe = "rows", pretty = FALSE)

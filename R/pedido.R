@@ -26,6 +26,8 @@ options(OutDec = ",")   # vírgula decimal nos eixos das figuras
 a <- commandArgs(TRUE)
 saida <- a[1]; analise <- a[2]; grupo <- a[3]; fator <- if (length(a) >= 4 && nzchar(a[4]) && a[4] != "-") a[4] else ""; variavel <- if (length(a) >= 5 && nzchar(a[5])) a[5] else "riqueza"
 if (analise == "quasipoisson") variavel <- "abundancia"
+if (analise == "regressao_gradiente" && (!grepl("^amb_[0-9a-f]{32}$", fator) || !variavel %in% c("riqueza","abundancia")))
+  stop("Selecione uma medida ambiental e uma resposta no painel.")
 cat_ <- fromJSON(file.path(aqui, "pedidos_catalogo.json"), simplifyVector = FALSE)$analises
 info <- Filter(function(x) identical(x$id, analise), cat_)[[1]]
 if (is.null(info)) stop("Análise desconhecida: ", analise)
@@ -47,7 +49,7 @@ P <- H$pontos; ctx <- ler_contexto(saida)
 e <- ler_estilo(file.path(saida, "estilo.json")); registrar_fontes(e); k <- cores_tema(e); pal <- e$paleta
 # Nas respostas univariadas, zero observado é uma medição válida.
 sem_confirmacao <- character()
-if (analise %in% c("anova", "kruskal", "quasipoisson", "correlacao_esforco")) {
+if (analise %in% c("anova", "kruskal", "quasipoisson", "correlacao_esforco", "regressao_gradiente")) {
   esforco <- suppressWarnings(as.numeric(P$esforco[match(rownames(m_total), P$ponto)]))
   tem_visita <- rowSums(m_total) > 0 | rownames(m_total) %in% resumo$pontos_zero_explicito
   if (length(esforco)) tem_visita <- tem_visita | (is.finite(esforco) & esforco > 0)
@@ -260,6 +262,57 @@ if (analise %in% c("kruskal", "anova")) {
   }
 }
 
+if (analise == "regressao_gradiente") {
+  indice <- match(fator, H$gradientes$chave)
+  if (is.na(indice)) {
+    pr("Variável ambiental", "falha", "A medida selecionada não está nos dados deste levantamento. Recalcule a planilha e escolha o preditor.")
+  } else {
+    nome_x <- H$gradientes$nome[indice]; res$fator_nome <- nome_x
+    valores <- P[[paste0("amb.", nome_x)]]
+    if (is.null(valores)) pr("Variável ambiental", "falha", "A coluna selecionada está ausente do cadastro dos pontos.")
+  }
+  if (!falhou()) {
+    medidas <- split(valores[P$ponto %in% un], P$ponto[P$ponto %in% un])
+    ambiguos <- names(medidas)[vapply(medidas, function(v) length(unique(v[is.finite(v)])) > 1L, logical(1))]
+    if (length(ambiguos)) pr("Medida por unidade", "falha", paste("Valores conflitantes na mesma unidade:", paste(ambiguos, collapse = ", ")))
+    por_unidade <- vapply(medidas, function(v) as.numeric(v[is.finite(v)][1L]), numeric(1))
+    xs <- unname(por_unidade[un])
+    y <- if (variavel == "riqueza") rowSums(m > 0) else rowSums(m)
+    dados <- data.frame(unidade = un, x = xs, y = as.numeric(y))
+    incluir <- is.finite(xs)
+    if (any(!incluir)) pr("Medidas ausentes", "atenção", paste("Unidades sem a medida:", paste(un[!incluir], collapse = ", ")))
+    dados <- dados[incluir, , drop = FALSE]
+    if (nrow(dados) < 3L || length(unique(dados$x)) < 2L || length(unique(dados$y)) < 2L)
+      pr("Dados para estimar a inclinação", "falha", "São necessárias três unidades completas ou mais, com variação no preditor e na resposta.")
+    if (anyDuplicated(ponto_fisico(dados$unidade))) falha_repeticao()
+  }
+  if (!falhou()) {
+    fit <- stats::lm(y ~ x, data = dados)
+    if (fit$rank < 2L || sum(residuals(fit)^2) <= .Machine$double.eps * sum((dados$y - mean(dados$y))^2))
+      pr("Variância residual", "falha", "A inclinação ou a incerteza residual não é estimável com precisão neste conjunto.")
+  }
+  if (!falhou()) {
+    sm <- summary(fit); co <- coef(sm); ic <- stats::confint(fit)
+    nome_y <- if (variavel == "riqueza") "Riqueza (espécies)" else "Abundância (indivíduos)"
+    rr <- residuals(fit)
+    if (length(rr) <= 5000 && diff(range(rr)) > 0) {
+      sw <- stats::shapiro.test(rr)$p.value
+      pr("Normalidade dos resíduos", if (sw < .05) "atenção" else "ok", sprintf("Shapiro–Wilk p %s. Avalie também a distribuição dos resíduos.", fp(sw)))
+    }
+    pr("Delineamento e forma da relação", "atenção", "Confira esforço comparável, independência espacial, linearidade e dispersão dos resíduos ao longo do gradiente.")
+    tabela <- list(coeficientes = data.frame(termo = c("Intercepto", nome_x), estimativa = co[,1], erro_padrao = co[,2], IC95_inf = ic[,1], IC95_sup = ic[,2], t = co[,3], p = co[,4], row.names = NULL),
+      ajuste = data.frame(n = nrow(dados), gl_residuais = fit$df.residual, R2 = sm$r.squared, R2_ajustado = sm$adj.r.squared),
+      diagnostico = data.frame(unidade = dados$unidade, preditor = dados$x, observado = dados$y, ajustado = fitted(fit), residuo = rr, distancia_Cook = unname(stats::cooks.distance(fit)), row.names = NULL))
+    fig <- ggplot(dados, aes(x, y)) + geom_point(colour = pal[1]) +
+      geom_smooth(method = "lm", formula = y ~ x, level = .95, colour = pal[2], fill = pal[2], alpha = .15) +
+      tt("Regressão linear", nome_x, nome_y)
+    texto <- list(mede = paste("Associação linear entre", nome_x, "e", tolower(nome_y), "nos pontos amostrados."),
+      resultado = sprintf("Inclinação = %s (IC 95%% de %s a %s), p %s. R² = %s em %d unidades.", fmt(co[2,1], 4), fmt(ic[2,1], 4), fmt(ic[2,2], 4), fp(co[2,4]), fmt(sm$r.squared, 4), nrow(dados)),
+      interpretacao = "A inclinação expressa a variação média estimada da resposta por unidade do preditor na faixa observada.",
+      limites = "A inferência depende do desenho e da adequação do modelo linear às contagens. Consulte a tabela de resíduos e influência antes de interpretar os intervalos. Uma associação observacional não demonstra causalidade.")
+  }
+}
+
 if (analise == "quasipoisson") {
   pede_fator(2)
   if (!falhou()) {
@@ -422,7 +475,7 @@ if (analise == "quiquadrado") {
 # ---- gravar
 cat("@@ 85 Gravando o resultado\n")
 dir.create(file.path(saida, "pedidos"), showWarnings = FALSE)
-pid <- paste(c(gsub("[^A-Za-z]", "", iconv(grupo, "UTF-8", "ASCII//TRANSLIT")), analise, if (nzchar(fator)) fator, if (analise %in% c("kruskal", "anova")) variavel), collapse = "_")
+pid <- paste(c(gsub("[^A-Za-z]", "", iconv(grupo, "UTF-8", "ASCII//TRANSLIT")), analise, if (nzchar(fator)) fator, if (analise %in% c("kruskal", "anova", "regressao_gradiente")) variavel), collapse = "_")
 res$pid <- pid; res$pressupostos <- PR; res$rodou <- !falhou() && (!is.null(tabela) || !is.null(fig)); res$texto <- texto
 res$tabela <- if (is.data.frame(tabela)) list(principal = tabela) else tabela
 res$figura <- NULL

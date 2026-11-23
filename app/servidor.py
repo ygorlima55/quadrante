@@ -64,6 +64,28 @@ def slug(nome):
     return s
 
 
+def valida_regiao(corpo):
+    """Centro e raio dos dados secundários. Devolve o dicionário limpo ou o motivo da recusa (texto)."""
+    try:
+        j = json.loads(corpo)
+    except (ValueError, UnicodeDecodeError):
+        return "A região não veio em formato válido."
+    if not isinstance(j, dict):
+        return "A região não veio em formato válido."
+    try:
+        lat, lon, raio = float(j.get("lat")), float(j.get("lon")), float(j.get("raio_km"))
+    except (TypeError, ValueError):
+        return "Informe latitude, longitude e raio em números."
+    if not (-35 <= lat <= 7 and -75 <= lon <= -28):
+        return "O centro precisa ficar no Brasil (latitude entre -35 e 7, longitude entre -75 e -28)."
+    if not 1 <= raio <= 500:
+        return "O raio precisa ficar entre 1 e 500 km."
+    origem = j.get("origem") if j.get("origem") in ("pontos", "municipio", "digitado", "kml") else "digitado"
+    txt = lambda k, n: str(j.get(k) or "")[:n]
+    return {"lat": round(lat, 6), "lon": round(lon, 6), "raio_km": raio, "origem": origem, "municipio": txt("municipio", 120),
+            "uf": txt("uf", 2).upper(), "datum": txt("datum", 40) or "SIRGAS 2000", "salvo_em": time.strftime("%Y-%m-%d %H:%M:%S")}
+
+
 def pasta_ok(lid):
     if not re.fullmatch(r"[a-z0-9-]{1,60}", lid or ""):
         return None
@@ -247,6 +269,13 @@ class Manipulador(SimpleHTTPRequestHandler):
             return self.json({"ok": True})
         if caminho == "/api/levantamentos":
             return self.json(listar())
+        m = re.fullmatch(r"/api/l/([a-z0-9-]+)/regiao", caminho)
+        if m:   # dados secundários: centro e raio salvos (ou {} se ainda não salvos)
+            p = pasta_ok(m.group(1))
+            if not p:
+                return self.send_error(404)
+            arq = os.path.join(p, "secundarios", "regiao.json")
+            return self.json(json.load(open(arq, encoding="utf-8")) if os.path.isfile(arq) else {})
         m = re.fullmatch(r"/api/tarefa/([a-f0-9]{10})", caminho)
         if m:
             t = TAREFAS.get(m.group(1))
@@ -286,7 +315,7 @@ class Manipulador(SimpleHTTPRequestHandler):
                 json.dump({"nome": nome, "enviado_em": time.strftime("%Y-%m-%d %H:%M:%S"), "titulo": re.sub(r"\.(xlsx|xls)$", "", nome, flags=re.I)},
                           open(os.path.join(p, "origem.json"), "w", encoding="utf-8"), ensure_ascii=False)
                 return self.json({"id": lid, "tarefa": analisar(lid)})
-            m = re.fullmatch(r"/api/l/([a-z0-9-]+)/(estilo|contexto|leitura|refazer|pasta|titulo|selecao|relatorio|planilha|correcoes|pedido)", caminho)
+            m = re.fullmatch(r"/api/l/([a-z0-9-]+)/(estilo|contexto|leitura|refazer|pasta|titulo|selecao|relatorio|planilha|correcoes|pedido|regiao|area)", caminho)
             if not m:
                 return self.send_error(404)
             lid, acao = m.groups(); p = pasta_ok(lid)
@@ -377,6 +406,34 @@ class Manipulador(SimpleHTTPRequestHandler):
                 return self.json({"tarefa": analisar(lid)})
             if acao == "refazer":
                 return self.json({"tarefa": analisar(lid)})
+            if acao == "area":   # KML/KMZ da área: o centro vira o centro da região dos dados secundários
+                nome = os.path.basename(parse_qs(u.query).get("nome", ["area.kml"])[0])
+                if not re.search(r"\.(kml|kmz)$", nome, re.I):
+                    return self.json({"erro": "Envie o arquivo da área em KML ou KMZ (Google Earth, QGIS)."}, 400)
+                dados = self.corpo()
+                try:
+                    sys.path.insert(0, os.path.join(RAIZ, "app")) if os.path.join(RAIZ, "app") not in sys.path else None
+                    import area_kml   # python -I não põe a pasta do script no caminho
+                    a = area_kml.ler_area(dados, nome)
+                except ValueError as e:
+                    return self.json({"erro": str(e)}, 400)
+                d = os.path.join(p, "secundarios"); os.makedirs(d, exist_ok=True)
+                ext = ".kmz" if nome.lower().endswith(".kmz") else ".kml"
+                for velho in ("area.kml", "area.kmz"):
+                    if os.path.exists(os.path.join(d, velho)):
+                        os.remove(os.path.join(d, velho))
+                with open(os.path.join(d, "area" + ext), "wb") as f:
+                    f.write(dados)
+                a["arquivo"] = nome
+                json.dump(a, open(os.path.join(d, "area.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                arq_reg = os.path.join(d, "regiao.json")
+                try:
+                    reg = json.load(open(arq_reg, encoding="utf-8"))
+                except Exception:  # noqa: BLE001
+                    reg = {"raio_km": 50, "uf": "", "municipio": "", "datum": "SIRGAS 2000"}
+                reg.update({"lat": a["lat"], "lon": a["lon"], "origem": "kml", "area": a, "salvo_em": time.strftime("%Y-%m-%d %H:%M:%S")})
+                json.dump(reg, open(arq_reg, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                return self.json(a)
             corpo = self.corpo().decode("utf-8")
             if acao == "estilo":
                 json.loads(corpo)
@@ -392,11 +449,22 @@ class Manipulador(SimpleHTTPRequestHandler):
                 ids = {a["id"] for a in json.load(open(os.path.join(RAIZ, "R", "pedidos_catalogo.json"), encoding="utf-8"))["analises"]}
                 an, gr = j.get("analise", ""), str(j.get("grupo", ""))[:60]
                 fa = j.get("fator") or "-"; va = j.get("variavel") or "riqueza"
-                if an not in ids or not gr or fa not in ("-", "fitofisionomia", "grupo_amostral", "campanha", "estacao") or va not in ("riqueza", "abundancia"):
+                if an == "regressao_gradiente":
+                    fator_valido = isinstance(fa, str) and re.fullmatch(r"amb_[0-9a-f]{32}", fa)
+                else:
+                    fator_valido = fa in ("-", "fitofisionomia", "grupo_amostral", "campanha", "estacao")
+                if an not in ids or not gr or not fator_valido or va not in ("riqueza", "abundancia"):
                     return self.json({"erro": "Pedido de análise inválido."}, 400)
                 if not os.path.exists(os.path.join(p, "resultados.rds")):
                     return self.json({"erro": "Rode as análises deste levantamento primeiro."}, 400)
                 return self.json({"tarefa": rodar([RSCRIPT, os.path.join(RAIZ, "R", "pedido.R"), p, an, gr, fa, va], lid, "Pedido: " + an)})
+            if acao == "regiao":
+                j = valida_regiao(corpo)
+                if isinstance(j, str):
+                    return self.json({"erro": j}, 400)
+                os.makedirs(os.path.join(p, "secundarios"), exist_ok=True)
+                json.dump(j, open(os.path.join(p, "secundarios", "regiao.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                return self.json({"ok": True})
             if acao == "contexto":
                 j = json.loads(corpo)
                 if not isinstance(j, dict):

@@ -173,10 +173,19 @@ legenda_cores <- function(p, paleta, destino) {
       }
     }
     if (is.null(out)) {   # figura sem legenda (uma cor só): pega as cores da primeira camada
-      ld <- suppressWarnings(ggplot2::layer_data(p, 1)); v <- if (!is.null(ld$fill)) ld$fill else ld$colour
-      v <- unique(v[!is.na(v)]); v <- utils::head(v, 4)
-      if (length(v)) { cor <- toupper(grDevices::rgb(t(grDevices::col2rgb(v)), maxColorValue = 255))
-        out <- data.frame(rotulo = if (length(v) == 1) "Cor" else paste("Cor", seq_along(v)), cor = cor, indice = match(cor, toupper(paleta)), stringsAsFactors = FALSE) }
+      # 21/11/2026: cada cor ganha o nome do que ela pinta (ex.: barras por família = nome da família no eixo)
+      b <- suppressWarnings(ggplot2::ggplot_build(p)); ld <- b$data[[1]]; v <- if (!is.null(ld$fill)) ld$fill else ld$colour
+      rot <- NULL
+      for (sc in list(b$layout$panel_scales_x[[1]], b$layout$panel_scales_y[[1]])) {
+        if (is.null(sc) || !sc$is_discrete()) next
+        pos <- ld[[if (any(sc$aesthetics == "x")) "x" else "y"]]; lim <- tryCatch(as.character(sc$get_limits()), error = function(x) NULL)
+        if (length(lim) && !is.null(pos)) { rot <- lim[round(as.numeric(pos))]; break } }
+      ok <- !is.na(v); v <- v[ok]; rot <- if (!is.null(rot)) rot[ok]
+      if (length(v)) {
+        cor <- toupper(grDevices::rgb(t(grDevices::col2rgb(v)), maxColorValue = 255)); u <- unique(cor)
+        nome <- if (!is.null(rot) && !anyNA(rot)) vapply(u, function(cc) paste(unique(rot[cor == cc]), collapse = ", "), "")
+                else if (length(u) == 1) "Cor" else paste("Cor", seq_along(u))
+        out <- utils::head(data.frame(rotulo = unname(nome), cor = u, indice = match(u, toupper(paleta)), stringsAsFactors = FALSE), 16) }
     }
     out
   }, error = function(x) NULL)

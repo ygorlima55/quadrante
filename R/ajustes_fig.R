@@ -49,6 +49,20 @@ ajustar_fig <- function(p, a) {
         d }
       p$data <- muda(p$data); for (i in seq_along(p$layers)) if (is.data.frame(p$layers[[i]]$data)) p$layers[[i]]$data <- muda(p$layers[[i]]$data)
     }
+    # 21/11/2026: o mesmo nome também nos eixos com categorias (ex.: barras por família sem legenda)
+    if (achou) {
+      decl <- character()
+      for (sc in p$scales$scales) if (any(sc$aesthetics %in% c("x", "y")) && inherits(sc, "ScaleDiscrete")) {
+        lb <- sc$labels
+        sc$labels <- if (is.function(lb)) function(b) troca(lb(b)) else if (is.character(lb) && length(lb)) troca(lb) else function(b) troca(b)
+        decl <- c(decl, intersect(sc$aesthetics, c("x", "y")))
+      }
+      b <- tryCatch(ggplot2::ggplot_build(p), error = function(x) NULL)
+      if (!is.null(b)) {
+        if (!"x" %in% decl && isTRUE(b$layout$panel_scales_x[[1]]$is_discrete())) p <- p + ggplot2::scale_x_discrete(labels = function(v) troca(v))
+        if (!"y" %in% decl && isTRUE(b$layout$panel_scales_y[[1]]$is_discrete())) p <- p + ggplot2::scale_y_discrete(labels = function(v) troca(v))
+      }
+    }
   }
   # 4. partes do desenho
   th <- list()

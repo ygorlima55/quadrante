@@ -31,6 +31,11 @@ Cada figura tem **outras formas** de apresentar o mesmo resultado, **títulos ed
 
 Para testar, solte a planilha **`exemplo/planilha_exemplo_ficticia.xlsx`** (dados inventados).
 
+## Tutorial em vídeo
+O arquivo **[`tutorial/tutorial_quadrante.mp4`](tutorial/tutorial_quadrante.mp4)** (cerca de 6 minutos, vertical, narrado em português) mostra como usar cada parte do programa: abrir, a planilha certa, a conferência, os três botões que recalculam ou redesenham, cada seção do painel, os dados secundários, os pedidos de análise e a pasta do relatório. Ele vem junto no Download ZIP.
+
+A narração usa uma voz sintética (Microsoft Edge, voz neural em português) com efeito de voz rouca.
+
 > Mac e Linux: o programa é R e Python puros e deve funcionar, mas os atalhos `.cmd` são só do Windows. Rode `Rscript R/instalar_pacotes.R` e depois `python3 app/servidor.py`.
 
 ## A planilha
@@ -62,6 +67,15 @@ levantamentos\<nome>\
   relatorio\         só o que foi marcado "No relatório"
 ```
 Tudo roda no seu computador (endereço 127.0.0.1). As planilhas não são enviadas para lugar nenhum.
+
+## Dados secundários (literatura da região)
+Na seção **Dados secundários** do painel, informe o centro (o padrão é o centro dos pontos amostrais) e o raio em km, e salve.
+Depois preencha `levantamentos\<nome>\secundarios\dados_secundarios.xlsx` com as obras (artigos, teses, relatórios) da região e as
+espécies de cada uma. A aba **Leia-me** explica cada coluna, e `exemplo\dados_secundarios_exemplo_ficticio.xlsx` mostra um exemplo inventado.
+Clique em **Rodar de novo**: o Quadrante mostra os descritivos das obras e compara a literatura com o campo (só na literatura,
+só no campo, nas duas, campo a confirmar), em figuras e em `tabelas\10_dados_secundarios.xlsx`.
+Entram só obras marcadas como lidas e dentro do raio; uma tese e o artigo tirado dela contam uma vez (coluna `obra_derivada_de`).
+A pasta `biblioteca\` guarda os PDFs já obtidos, para não buscar a mesma obra de novo.
 
 ## Cuidados na leitura
 O painel explica, junto de cada análise, o que ela mede, o resultado, como interpretar e os limites. Por exemplo:

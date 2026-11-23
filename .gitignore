@@ -5,3 +5,5 @@ __pycache__/
 *.pyc
 estilo.json
 ~$*.xlsx
+biblioteca/*
+!biblioteca/LEIA-ME.txt
