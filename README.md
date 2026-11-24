@@ -15,10 +15,11 @@ Você solta a planilha numa página do navegador, o R confere os dados, roda as 
 | Diversidade por ponto | Shannon, Simpson, Pielou, números de Hill, teste t de Hutcheson |
 | Similaridade | Jaccard, Bray-Curtis, complementaridade, agrupamento (UPGMA), diversidade beta (Whittaker e Baselga) |
 | Fitofisionomias | espécies e exclusivas, indivíduos, diversidade (Hill), rarefação de cada ambiente, famílias e similaridade |
-| Campanhas | com a coluna Campanha: comparação entre campanhas, NMDS e PERMANOVA |
+| Campanhas | com a coluna Campanha: espécies em comum e exclusivas de cada campanha, curva, estimadores, diversidade e dominância por campanha, NMDS e PERMANOVA |
+| Seca e chuva | quando as campanhas são de chuva e de seca: cada estação analisada sozinha e a comparação entre elas (lado a lado, Hutcheson, Hill, GLMM pareado por ponto e Wilcoxon, NMDS, PERMANOVA e PERMDISP com permutação dentro do ponto, SIMPER, Baselga, UPGMA e espécies indicadoras); tabelas em `tabelas_<grupo>_seca_e_chuva.xlsx` |
 | Dominância | ranque com o nome de cada espécie |
 
-Cada figura tem **outras formas** de apresentar o mesmo resultado, **títulos editáveis** e a caixa **No relatório**. No fim, o programa monta uma pasta com as figuras numeradas e uma planilha única com todas as tabelas marcadas.
+Cada figura tem **outras formas** de apresentar o mesmo resultado e a caixa **No relatório**. Dá para editar **clicando na própria figura**: numa barra, linha ou faixa, para trocar a cor, o nome ou tirar o item; no alto ou nos eixos, para reescrever o título e os nomes dos eixos. As figuras saem no tema **Modelo** (fonte Inter, que o `instalar.cmd` instala só para o seu usuário). No fim, o programa monta uma pasta com as figuras numeradas e uma planilha única com todas as tabelas marcadas.
 
 ## Instalação (Windows)
 1. Baixe a versão mais recente na página **[Releases](../../releases/latest)** → **Source code (zip)**, ou pelo botão verde **Code → Download ZIP** nesta página, e descompacte numa pasta (por exemplo, `Documentos\quadrante`).
@@ -27,10 +28,10 @@ Cada figura tem **outras formas** de apresentar o mesmo resultado, **títulos ed
    - o **R** (4.3 ou mais novo);
    - o **Python 3**.
 
-   Se faltar algum, ele oferece instalar pelo `winget` ou abre a página de download. Depois, baixa os pacotes do R (cerca de 150 MB, só na primeira vez) para a pasta `r-pacotes`.
+   Se faltar algum, ele oferece instalar pelo `winget` ou abre a página de download. Depois, baixa os pacotes do R (mais de 150 MB, só na primeira vez; inclui o glmmTMB do modo Seca e chuva) para a pasta `r-pacotes`.
 3. Pronto. Para usar: dois cliques em **`abrir_quadrante.cmd`**. O programa abre no navegador; deixe a janela preta aberta enquanto usar.
 
-Para testar, solte a planilha **`exemplo/planilha_exemplo_ficticia.xlsx`** (dados inventados).
+Para testar, solte a planilha **`exemplo/planilha_exemplo_ficticia.xlsx`** (dados inventados). Para ver o modo Seca e chuva, use **`exemplo/planilha_exemplo_seca_chuva_ficticia.xlsx`** (também inventada).
 
 ## Tutorial em vídeo
 O arquivo **[`tutorial/tutorial_quadrante.mp4`](tutorial/tutorial_quadrante.mp4)** (cerca de 6 minutos, vertical, narrado em português) mostra como usar cada parte do programa: abrir, a planilha certa, a conferência, os três botões que recalculam ou redesenham, cada seção do painel, os dados secundários, os pedidos de análise e a pasta do relatório. Ele vem junto no Download ZIP.

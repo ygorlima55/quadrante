@@ -41,6 +41,10 @@ echo [ 50%%] Instalando os pacotes do R na pasta r-pacotes (so na primeira vez; 
 if errorlevel 1 ( echo. & echo Os pacotes nao instalaram. Confira a internet e rode de novo. & pause & exit /b 1 )
 
 echo.
+echo [ 95%%] Instalando a fonte Inter dos graficos (so para este usuario)...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%AQUI%app\instalar_fontes.ps1" -Pasta "%AQUI%fontes"
+
+echo.
 echo [ 98%%] Criando o atalho Quadrante na area de trabalho...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$d=[Environment]::GetFolderPath('Desktop'); $w=New-Object -ComObject WScript.Shell; $s=$w.CreateShortcut((Join-Path $d 'Quadrante.lnk')); $s.TargetPath='%AQUI%abrir_quadrante.cmd'; $s.WorkingDirectory='%AQUI%'; $s.IconLocation='%AQUI%identidade\quadrante.ico,0'; $s.WindowStyle=7; $s.Description='Quadrante'; $s.Save()" >nul 2>nul
 echo [100%%] Tudo pronto. Para usar: dois cliques no atalho "Quadrante" da area de trabalho

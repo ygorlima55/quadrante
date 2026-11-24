@@ -127,7 +127,9 @@ espécies"), family = e$familia, size = tam * 1.4, colour = k$tinta, lineheight 
   if (chave == "exclusivas_pontos" && !is.null(D)) {
     le <- D$especies; pts <- D$pontos$ponto
     d <- do.call(rbind, lapply(pts, function(p) { ex <- le$especie[le[[p]] > 0 & le$n_pontos == 1]; tot <- sum(le[[p]] > 0)
-      data.frame(ponto = p, exclusivas = length(ex), compartilhadas = tot - length(ex), nomes = paste(abrev(sort(ex)), collapse = ", "), stringsAsFactors = FALSE) }))
+      nm <- abrev(sort(ex)); linhas <- split(nm, ceiling(seq_along(nm) / 4))   # 4 nomes por linha: a lista não sai da figura
+      data.frame(ponto = p, exclusivas = length(ex), compartilhadas = tot - length(ex), nomes = paste(vapply(linhas, paste, "", collapse = ", "), collapse = ",\n"), stringsAsFactors = FALSE) }))
+    d <- d[d$exclusivas + d$compartilhadas > 0, , drop = FALSE]; pts <- as.character(d$ponto)   # ponto sem registro não entra
     d$ponto <- factor(d$ponto, levels = rev(pts))
     if (forma == "colunas") {
       dd <- rbind(data.frame(ponto = d$ponto, tipo = "Exclusivas do ponto", n = d$exclusivas), data.frame(ponto = d$ponto, tipo = "Também em outros pontos", n = d$compartilhadas))
@@ -317,7 +319,8 @@ curva_obs_inext <- function(G) {
 # estimador com a faixa do erro padrão (cai para a faixa do poolaccum se não houver)
 curva_estimador <- function(G, est) {
   pe <- G$acumulacao$poolaccum_ep
-  if (!is.null(pe) && any(pe$estimador == est)) return(pe[pe$estimador == est, c("pontos", "media", "li", "ls")])
+  # o vegan::specpool não dá erro padrão para o Jackknife 2: sem faixa, usa a do poolaccum (variação entre as ordens dos pontos)
+  if (!is.null(pe) && any(pe$estimador == est & is.finite(pe$li) & is.finite(pe$ls))) return(pe[pe$estimador == est, c("pontos", "media", "li", "ls")])
   pool <- G$acumulacao$poolaccum; pool[pool$estimador == est, c("pontos", "media", "li", "ls")]
 }
 

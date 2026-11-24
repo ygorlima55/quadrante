@@ -6,12 +6,15 @@ estilo_padrao <- list(
   # Direção A "Sálvia" (17/11/2026): paleta validada para daltonismo sobre #f7f7f5
   # (escuro: #4fa274 #e05a3b #5385d4 #bb8708 #ad5fa4 #6f9e24 #4596e0 #c4692f sobre #1a1d1b).
   # A Direção C "Síntese" continua como tema_r = "sintese" (cópia em versoes/direcao-c-sintese-2026-11-17).
-  paleta = c("#3f8c62", "#d0482a", "#2a5cab", "#a87700", "#9a3f8f", "#5c8a00", "#3d8fdc", "#ad4f19"),
+  paleta = c("#00a5bf", "#ee7d00", "#1aa77a", "#6a4fd8", "#00809a", "#e0a800", "#c2417a", "#b5651d"),
   # 18/11/2026: tudo em Times New Roman, legenda em cima e na horizontal, sem notas de rodapé
   # explicativas (mostrar_nota), JPEG de alta resolução ao lado de cada PNG (dpi_jpeg).
-  tema_r = "salvia", fonte = 11, familia = "Times New Roman", familia_titulo = "Times New Roman",
-  tema = "claro", faixa = TRUE, grade = FALSE, linha = 1, ponto = 2.5,
-  legenda = "top", largura = 7, altura = 4.5, dpi = 300, dpi_jpeg = 600, mostrar_nota = FALSE, mostrar_titulo = TRUE, mostrar_grupo = FALSE, cores_fig = list(), ajustes = list(),
+  # 24/11/2026: tema "Modelo" (pedido do usuário, gráficos do documento "Estrutura seca e chuva") vira o padrão:
+  # Inter, título em Inter Black centralizado, subtítulo em Inter SemiBold, legenda embaixo com marcadores redondos,
+  # chuva #00a5bf e seca #ee7d00. Os temas antigos continuam no seletor do painel.
+  tema_r = "modelo", fonte = 11, familia = "Inter", familia_titulo = "Inter Black",
+  tema = "claro", faixa = TRUE, grade = TRUE, linha = 1, ponto = 2.5,
+  legenda = "bottom", largura = 7, altura = 4.5, dpi = 300, dpi_jpeg = 600, mostrar_nota = FALSE, mostrar_titulo = FALSE, mostrar_grupo = FALSE, cores_fig = list(), ajustes = list(),
   titulos = list(), formas = list()
 )
 
@@ -47,7 +50,14 @@ ler_estilo <- function(caminhos) {
     if (!is.null(j)) for (k in names(j)) if (!is.null(j[[k]])) e[[k]] <- j[[k]]
     break
   }
+  # estilo salvo antes do tema Modelo (Sálvia + Times, o padrão antigo): passa para o Modelo
+  if (is.null(e$versao_estilo) && (e$tema_r %||% "salvia") == "salvia" && identical(e$familia, "Times New Roman")) {
+    for (k in c("tema_r", "familia", "familia_titulo", "legenda", "paleta", "grade")) e[[k]] <- estilo_padrao[[k]]
+  }
+  # 24/11/2026: título das figuras desligado por padrão (pedido do usuário); estilo salvo antes disso (versão < 9) também desliga
+  if (is.null(e$versao_estilo) || e$versao_estilo < 9) e$mostrar_titulo <- FALSE
   e$paleta <- unlist(e$paleta)
+  e <- fontes_disponiveis(e)
   if (is.null(e$titulos) || !is.list(e$titulos)) e$titulos <- list()
   if (is.null(e$formas) || !is.list(e$formas)) e$formas <- list()
   if (is.null(e$cores_fig) || !is.list(e$cores_fig)) e$cores_fig <- list()
@@ -55,9 +65,20 @@ ler_estilo <- function(caminhos) {
   e
 }
 
+# a Inter vem na pasta fontes/ do programa; se não estiver instalada no Windows, cai para a Segoe UI
+fontes_disponiveis <- function(e) {
+  if (.Platform$OS.type != "windows" || !any(grepl("^Inter", c(e$familia, e$familia_titulo)))) return(e)
+  pastas <- c(file.path(Sys.getenv("LOCALAPPDATA"), "Microsoft", "Windows", "Fonts"), file.path(Sys.getenv("WINDIR"), "Fonts"))
+  tem <- any(file.exists(file.path(pastas, "Inter-900.ttf"))) || any(file.exists(file.path(pastas, "Inter-Black.ttf")))
+  if (!tem) {
+    if (grepl("^Inter", e$familia)) e$familia <- "Segoe UI"
+    if (grepl("^Inter", e$familia_titulo)) e$familia_titulo <- "Segoe UI Black"
+  }
+  e
+}
 registrar_fontes <- function(e) {
   if (.Platform$OS.type != "windows") return(invisible())
-  fs <- unique(c(e$familia, e$familia_titulo))
+  fs <- unique(c(e$familia, e$familia_titulo, if (grepl("^Inter", e$familia)) c("Inter SemiBold", "Inter Medium")))
   do.call(grDevices::windowsFonts, setNames(lapply(fs, grDevices::windowsFont), fs))
 }
 
@@ -67,6 +88,9 @@ rot <- function(e, chave, campo, padrao) {
 }
 cores_tema <- function(e) {
   escuro <- identical(e$tema, "escuro")
+  if (identical(e$tema_r %||% "", "modelo"))   # Modelo: fundo branco, tinta quase preta, grade bem clara
+    return(if (escuro) list(tinta = "#eceeea", tinta2 = "#a3aba5", fundo = "#1a1d1b", grade = "#2c312e")
+           else list(tinta = "#1a1a1a", tinta2 = "#5f6368", fundo = "#ffffff", grade = "#ececec"))
   if (identical(e$tema_r %||% "", "salvia"))   # Sálvia: cinza quente claro ou grafite
     return(if (escuro) list(tinta = "#eceeea", tinta2 = "#a3aba5", fundo = "#1a1d1b", grade = "#2c312e")
            else list(tinta = "#1d1f1e", tinta2 = "#5c615c", fundo = "#ffffff", grade = "#e4e4e0"))
@@ -89,7 +113,30 @@ tema_gg <- function(e) {
     legend.key.size = grid::unit(.9, "lines"), legend.spacing.x = grid::unit(4, "pt"),
     plot.title = ggplot2::element_text(family = e$familia_titulo, face = "bold", size = ggplot2::rel(1.15)),
     plot.caption = ggplot2::element_text(size = ggplot2::rel(.8)))
-  if (identical(e$tema_r %||% "", "salvia")) {
+  if (identical(e$tema_r %||% "", "modelo")) {
+    sub_fam <- if (grepl("^Inter", fam)) "Inter SemiBold" else fam
+    t <- t + ggplot2::theme(text = ggplot2::element_text(colour = k$tinta),
+      axis.text = ggplot2::element_text(colour = k$tinta2, size = ggplot2::rel(.85)),
+      axis.text.x = ggplot2::element_text(colour = k$tinta2, size = ggplot2::rel(.9), lineheight = .95),
+      axis.title = ggplot2::element_text(colour = k$tinta2, size = ggplot2::rel(.9)),
+      plot.title = ggplot2::element_text(family = e$familia_titulo, face = "plain", size = ggplot2::rel(1.55), colour = k$tinta, hjust = .5, margin = ggplot2::margin(b = 3)),
+      plot.subtitle = ggplot2::element_text(family = sub_fam, colour = k$tinta2, size = ggplot2::rel(.95), hjust = .5, margin = ggplot2::margin(b = 12)),
+      plot.title.position = "plot",
+      plot.caption = ggplot2::element_text(size = ggplot2::rel(.78), colour = k$tinta2, hjust = .5),
+      plot.caption.position = "plot",
+      panel.grid.major = if (isTRUE(e$grade)) ggplot2::element_line(colour = k$grade, linewidth = .35) else ggplot2::element_blank(),
+      panel.grid.minor = ggplot2::element_blank(),
+      axis.line.x = ggplot2::element_line(colour = k$tinta2, linewidth = .45), axis.ticks = ggplot2::element_blank(),
+      plot.background = ggplot2::element_rect(fill = k$fundo, colour = NA), panel.background = ggplot2::element_rect(fill = k$fundo, colour = NA),
+      plot.margin = ggplot2::margin(16, 18, 12, 14),
+      strip.text = ggplot2::element_text(family = sub_fam, colour = k$tinta, size = ggplot2::rel(.95), hjust = .5),
+      strip.background = ggplot2::element_rect(fill = NA, colour = NA),
+      legend.position = if (e$legenda %in% c("top", "bottom")) e$legenda else e$legenda,
+      legend.justification = "center", legend.title = ggplot2::element_blank(),
+      legend.background = ggplot2::element_rect(fill = k$fundo, colour = NA), legend.key = ggplot2::element_rect(fill = NA, colour = NA),
+      legend.text = ggplot2::element_text(family = sub_fam, colour = k$tinta, size = ggplot2::rel(.88), margin = ggplot2::margin(l = 3, r = 10)),
+      legend.box.spacing = grid::unit(10, "pt"))
+  } else if (identical(e$tema_r %||% "", "salvia")) {
     salvia_esc <- if (identical(e$tema, "escuro")) "#8fb59e" else "#4c7a5f"
     t <- t + ggplot2::theme(text = ggplot2::element_text(colour = k$tinta), axis.text = ggplot2::element_text(colour = k$tinta2, size = ggplot2::rel(.92)),
       axis.title = ggplot2::element_text(colour = k$tinta2, size = ggplot2::rel(.95)),
@@ -128,13 +175,36 @@ tema_gg <- function(e) {
   } else if (!isTRUE(e$grade)) t <- t + ggplot2::theme(panel.grid = ggplot2::element_blank())
   t
 }
+# tema Modelo: marcador redondo na legenda das barras e áreas; a faixa de IC some da legenda quando há linha
+key_bola <- function(data, params, size) {
+  cor <- data$fill %||% data$colour %||% "grey50"; if (is.na(cor)) cor <- data$colour %||% "grey50"
+  grid::pointsGrob(.5, .5, pch = 21, size = grid::unit(.62, "char"), gp = grid::gpar(col = NA, fill = scales::alpha(cor, data$alpha %||% 1)))
+}
+key_nada <- function(data, params, size) grid::nullGrob()
+com_chave <- function(g0, chave) { force(g0); ggplot2::ggproto(NULL, g0, draw_key = chave) }   # frame próprio: o ggproto herda deste g0
+modelo_gg <- function(p, e) {
+  if (!identical(e$tema_r %||% "", "modelo") || !inherits(p, "ggplot")) return(p)
+  tipos <- vapply(p$layers, function(l) class(l$geom)[1], "")
+  tem_linha <- any(tipos %in% c("GeomLine", "GeomPath", "GeomStep", "GeomSmooth"))
+  for (i in seq_along(p$layers)) {
+    l <- p$layers[[i]]; g <- tipos[i]; g0 <- l$geom   # g0 fixa o geom original (sem isso o ggproto herda dele mesmo)
+    if (g %in% c("GeomCol", "GeomBar", "GeomRect", "GeomTile", "GeomBoxplot", "GeomArea", "GeomPolygon", "GeomViolin", "GeomDensity") ||
+        (g == "GeomRibbon" && !tem_linha)) {
+      l$geom <- com_chave(g0, key_bola)
+    } else if (g == "GeomRibbon" && tem_linha) l$geom <- com_chave(g0, key_nada)
+    p$layers[[i]] <- l
+  }
+  p
+}
 tira_grupo <- function(e, titulo) if (is.null(titulo) || is.null(e$grupo_atual)) titulo else sub(paste0(":\\s*", e$grupo_atual, "$"), "", titulo)
 # títulos padrão de cada figura (o painel mostra no editor de títulos)
 .TIT <- new.env()
 titulos_padrao <- function() { out <- list(); for (k in ls(.TIT)) { p <- strsplit(k, "\r", fixed = TRUE)[[1]]; out[[p[1]]][[p[2]]] <- get(k, envir = .TIT) }; out }
+# título desligado por padrão, mas o que a pessoa reescreveu no painel para uma figura aparece mesmo assim
+mostra_titulo <- function(e, chave) isTRUE(e$mostrar_titulo) || nzchar(e$titulos[[chave]][["titulo"]] %||% "")
 titulos_gg <- function(e, chave, titulo, x, y, nota = NULL) {
   if (!is.null(e$grupo_atual)) assign(paste(e$grupo_atual, chave, sep = "\r"), Filter(Negate(is.null), list(titulo = tira_grupo(e, titulo), x = x, y = y, nota = if (nzchar(nota %||% "")) nota)), envir = .TIT)
-  ggplot2::labs(title = if (isTRUE(e$mostrar_titulo)) rot(e, chave, "titulo", tira_grupo(e, titulo)) else NULL,
+  ggplot2::labs(title = if (mostra_titulo(e, chave)) rot(e, chave, "titulo", tira_grupo(e, titulo)) else NULL,
                 subtitle = if (isTRUE(e$mostrar_titulo) && !isFALSE(e$mostrar_grupo) && !is.null(e$grupo_atual)) e$grupo_atual else NULL,
                 x = rot(e, chave, "x", x), y = rot(e, chave, "y", y), caption = nota_fig(e, chave, nota))
 }
@@ -153,7 +223,7 @@ abrir_png <- function(arq, e, w, h, dpi, jpeg = FALSE) {
   graphics::par(family = e$familia, col.axis = k$tinta2, col.lab = k$tinta, col.main = k$tinta, fg = k$tinta2, mar = c(5.6, 4.5, if (isTRUE(e$mostrar_titulo)) 3.2 else 1.2, 1.2),
                 cex = e$fonte / 11, las = 1, lwd = e$linha)
 }
-titulo_base <- function(e, chave, padrao) if (isTRUE(e$mostrar_titulo)) graphics::title(main = rot(e, chave, "titulo", tira_grupo(e, padrao)), family = e$familia_titulo, font.main = 2, cex.main = 1.1)
+titulo_base <- function(e, chave, padrao) if (mostra_titulo(e, chave)) graphics::title(main = rot(e, chave, "titulo", tira_grupo(e, padrao)), family = e$familia_titulo, font.main = 2, cex.main = 1.1)
 nota_base <- function(e, chave, padrao) { n <- nota_fig(e, chave, padrao) %||% ""; if (nzchar(n)) graphics::mtext(n, side = 1, line = 4.4, adj = 1, cex = .75, col = cores_tema(e)$tinta2) }
 
 recriar_hclust <- function(d) structure(list(merge = matrix(unlist(d$merge), ncol = 2), height = unlist(d$altura), order = unlist(d$ordem),
@@ -207,6 +277,7 @@ desenhar <- function(chave, forma, G, O, e, arq, w, h, dpi) {
     # a legenda original vai para o painel (trocar cor, nome ou tirar um item); depois entram os ajustes pedidos
     if (!is.null(arq_jpg)) legenda_cores(p, e$paleta, sub("\\.png$", ".cores.json", arq))
     if (!is.null(arq_jpg)) p <- ajustar_fig(p, e$ajustes[[chave]])
+    p <- modelo_gg(p, e)
     ggplot2::ggsave(arq, p, width = ww, height = hh, dpi = dpi, bg = k$fundo, device = "png", type = tp)
     if (!is.null(arq_jpg)) ggplot2::ggsave(arq_jpg, p, width = ww, height = hh, dpi = e$dpi_jpeg, bg = k$fundo, device = "jpeg", type = tp, quality = 100)
     invisible(arq)
@@ -309,6 +380,7 @@ desenhar <- function(chave, forma, G, O, e, arq, w, h, dpi) {
   }
   if (chave == "indices_pontos") {
     ip <- G$indices$tabela; tt <- paste("Diversidade por ponto amostral:", gr)
+    ip <- ip[!is.na(ip$S) & ip$S > 0, , drop = FALSE]   # ponto sem registro não aparece na figura (pedido do usuário, 24/11/2026); a planilha continua com todos
     if (forma == "renyi") {
       mm <- O$m[rowSums(O$m) > 0, , drop = FALSE]
       rr <- vegan::renyi(mm, scales = c(0, .25, .5, 1, 2, 4, 8, Inf), hill = TRUE)
@@ -417,10 +489,10 @@ tag_grupo <- function(g) gsub("[^A-Za-z]", "", iconv(g, "UTF-8", "ASCII//TRANSLI
 # andamento: linha "[ 45%] <etapa>", legível no terminal; o servidor do app lê, tira do log e mostra a barra
 progresso <- function(p, etapa) { cat(sprintf("[%3d%%] %s\n", as.integer(round(p)), etapa)); flush(stdout()) }
 
-# uma cor por ponto de campo; com várias campanhas ("P1 C1", "P1 C2"), a mesma cor clareando nas campanhas mais antigas
+# uma cor por ponto de campo; com várias campanhas ("P1 · Chuva", "P1 · Seca"), a mesma cor clareando nas campanhas mais antigas
 cores_pontos <- function(pontos, pal) {
-  campo <- sub(" C[0-9]+$", "", pontos); u <- unique(campo); base <- setNames(pal[(seq_along(u) - 1) %% length(pal) + 1], u)
-  camp <- suppressWarnings(as.integer(sub(".* C", "", pontos))); nc <- max(c(1, camp), na.rm = TRUE)
+  campo <- ponto_fisico(pontos); u <- unique(campo); base <- setNames(pal[(seq_along(u) - 1) %% length(pal) + 1], u)
+  cn <- campanha_da_unidade(pontos); camp <- match(cn, sort(unique(na.omit(cn)))); nc <- max(c(1, camp), na.rm = TRUE)
   claro <- function(cor, f) grDevices::rgb(t(1 - (1 - grDevices::col2rgb(cor) / 255) * f))
   setNames(vapply(seq_along(pontos), function(i) if (is.na(camp[i])) base[[campo[i]]] else claro(base[[campo[i]]], .45 + .55 * camp[i] / nc), ""), pontos)
 }
@@ -430,7 +502,7 @@ pode_figura <- function(G) !isTRUE(G$insuficiente) && G$riqueza >= 3 && G$n_pont
 # versão do código das figuras = data (segundos) do arquivo .R mais novo da pasta R/ do programa
 versao_codigo <- function() {
   d <- if (exists("aqui", envir = globalenv())) get("aqui", envir = globalenv()) else "R"
-  fs <- list.files(d, "^(saida.*|fitofisionomias|campanhas|figuras|ajustes_fig)\\.R$", full.names = TRUE)   # só os arquivos que desenham figuras
+  fs <- list.files(d, "^(saida.*|fitofisionomias|campanhas|estacoes|figuras|ajustes_fig)\\.R$", full.names = TRUE)   # só os arquivos que desenham figuras
   if (!length(fs)) return(0)
   as.numeric(max(file.mtime(fs), na.rm = TRUE))
 }
@@ -465,6 +537,7 @@ gerar_formas <- function(R, OBJ, saida, e, faixa = c(85, 95)) {
   dir.create(file.path(saida, "formas"), showWarnings = FALSE, recursive = TRUE)
   unlink(list.files(file.path(saida, "formas"), glob2rx("*.png"), full.names = TRUE))
   cat <- catalogo_todo(); out <- list()
+  cat <- cat[lengths(lapply(cat, `[[`, "formas")) > 1]   # figura de uma forma só não tem "Outras formas" no painel: não precisa de miniatura
   gs <- names(R)[vapply(R, pode_figura, TRUE)]; tot <- length(gs) * sum(lengths(lapply(cat, `[[`, "formas"))); n <- 0
   for (g in names(R)) if (pode_figura(R[[g]])) {
     out[[g]] <- list()
@@ -518,7 +591,10 @@ exportar_tabelas <- function(L, conf, R, saida) {
       esc(list("Por fitofisionomia" = F$classes$tabela, "Espécies por fitofisionomia" = F$classes$especies, "Pares de fitofisionomias" = F$classes$pares,
                "Famílias por fitofisionomia" = F$classes$familias, "Rarefação (iNEXT)" = F$classes$rarefacao,
                "Por sigla (componente)" = F$componentes$tabela, "Espécies por sigla" = F$componentes$especies, "Pares de siglas" = F$componentes$pares), sprintf("08_%s_fitofisionomias.xlsx", t)) }
-    if (!is.null(G$campanhas)) esc(list("Resumo por campanha" = G$campanhas$resumo, "Espécies por campanha" = G$campanhas$especies,
+    if (!is.null(G$campanhas)) esc(list("Resumo por campanha" = G$campanhas$resumo, "Índices por campanha" = G$campanhas$indices,
+      "Famílias por campanha" = G$campanhas$familias, "Exclusivas de cada campanha" = G$campanhas$exclusivas,
+      "Mais abundantes" = G$campanhas$mais_abundantes, "Hutcheson" = G$campanhas$hutcheson$pares, "Rarefação iNEXT" = G$campanhas$rarefacao, "Compartilhadas" = G$campanhas$compartilhadas, "Estimadores por campanha" = G$campanhas$estimadores, "Dominância por campanha" = G$campanhas$dominancia,
+      "Curva de cada campanha" = G$campanhas$curvas, "Espécies por campanha" = G$campanhas$especies,
       "Pares de campanhas" = G$campanhas$pares, "Cada ponto nas campanhas" = G$campanhas$por_ponto,
       "NMDS" = G$nmds$pontos, "PERMANOVA" = if (!is.null(G$permanova$R2)) as.data.frame(G$permanova[c("grupos", "R2", "F", "p", "p_dispersao")])), sprintf("07_%s_campanhas.xlsx", t))
     tudo[[paste(g, "- matriz")]] <- mm; tudo[[paste(g, "- índices")]] <- G$indices$tabela; tudo[[paste(g, "- estimadores")]] <- G$acumulacao$estimadores

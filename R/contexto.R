@@ -52,10 +52,17 @@ aplicar_contexto <- function(L, ctx) {
     vis <- num_ctx(cs$visitas); vis[is.na(vis)] <- 1
     h <- num_ctx(cs$observadores) * num_ctx(cs$horas_ponto) * vis
     if (any(!is.na(h))) {
-      campanha <- if (!is.null(L$pontos$campanha)) L$pontos$campanha else rep(r$campanha[1], nrow(L$pontos))
-      k <- campanha_ctx(cs, campanha)
-      preencher <- is.na(L$pontos$esforco) & is.finite(h[k]) & h[k] > 0
-      if (any(preencher)) { L$pontos$esforco[preencher] <- h[k][preencher]; L$esforco_do_contexto <- TRUE }
+      if (!is.null(L$campanhas) && is.null(L$pontos$campanha)) {
+        # ponto com as campanhas somadas: esforço = soma das campanhas em que o ponto foi visitado
+        vis_p <- unique(rbind(data.frame(ponto = r$ponto, campanha = r$campanha), if (!is.null(L$visitas_campanha)) L$visitas_campanha[, c("ponto", "campanha")]))
+        hp <- vapply(L$pontos$ponto, function(p) { cc <- unique(vis_p$campanha[vis_p$ponto == p]); if (!length(cc)) cc <- unique(r$campanha)
+          kk <- campanha_ctx(cs, cc); v <- h[kk]; if (all(!is.finite(v))) NA_real_ else sum(v, na.rm = TRUE) }, 1)
+      } else {
+        campanha <- if (!is.null(L$pontos$campanha)) L$pontos$campanha else rep(r$campanha[1], nrow(L$pontos))
+        hp <- h[campanha_ctx(cs, campanha)]
+      }
+      preencher <- is.na(L$pontos$esforco) & is.finite(hp) & hp > 0
+      if (any(preencher)) { L$pontos$esforco[preencher] <- hp[preencher]; L$esforco_do_contexto <- TRUE }
     }
   }
   L

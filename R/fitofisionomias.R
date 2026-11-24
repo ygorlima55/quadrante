@@ -82,7 +82,7 @@ analisar_fito <- function(m, pontos_info, fam = NULL) {
       o <- tryCatch(suppressWarnings(iNEXT::iNEXT(vs, q = 0, datatype = "abundance", knots = 40, nboot = 50)), error = function(e) NULL)
       if (!is.null(o)) { z <- o$iNextEst$size_based
         GA <- list(rarefacao = data.frame(fitofisionomia = as.character(z$Assemblage), m = z$m, metodo = as.character(z$Method), qD = round(z$qD, 3), li = round(z$qD.LCL, 3), ls = round(z$qD.UCL, 3)),
-                   titulo = if (all(grepl("^C[0-9]+$", names(vs)))) "Campanha" else "Ambiente") }
+                   titulo = if (!is.null(pontos_info$campanha) && all(names(vs) %in% pontos_info$campanha)) "Campanha" else "Ambiente") }
     }
   }
   list(classes = A, componentes = B, grupos_amostrais = GA, texto = txt(
@@ -112,11 +112,11 @@ catalogo_fito <- function() list(
 desenhar_fito <- function(chave, forma, G, e, gg, pal, k, w, h) {
   F <- G$fitofisionomias; if (is.null(F)) return(invisible()); tam <- e$fonte / 3.1
   fmt1 <- function(x, d = 1) formatC(x, format = "f", digits = d, decimal.mark = ",")
-  quebra <- function(x) gsub(" \\+ ", " +\n", x)
+  quebra <- function(x) vapply(x, function(s) paste(strwrap(s, width = 15), collapse = "\n"), "", USE.NAMES = FALSE)   # nomes longos em linhas curtas, sem sobrepor
   rotulo <- function(t) factor(paste0(quebra(t$nome %||% t$fitofisionomia), "\n(", t$pontos, ")"), levels = unique(paste0(quebra(t$nome %||% t$fitofisionomia), "\n(", t$pontos, ")")))
   cores_f <- function(nomes) setNames(rep(pal, length.out = length(nomes)), nomes)
   if (chave %in% c("fito_riqueza", "fito_abundancia")) {
-    X <- if (forma == "componentes" && !is.null(F$componentes)) F$componentes else F$classes; t <- X$tabela; t$rot <- rotulo(t)
+    X <- if (forma == "componentes" && !is.null(F$componentes)) F$componentes else F$classes; t <- X$tabela; t <- t[t$riqueza > 0, , drop = FALSE]; t$rot <- rotulo(t)   # sem registro não entra
     if (chave == "fito_riqueza") {
       d <- rbind(data.frame(rot = t$rot, medida = "Espécies", v = t$riqueza), data.frame(rot = t$rot, medida = "Exclusivas", v = t$exclusivas))
       d$medida <- factor(d$medida, levels = unique(d$medida))
@@ -132,7 +132,7 @@ desenhar_fito <- function(chave, forma, G, e, gg, pal, k, w, h) {
       titulos_gg(e, chave, if (forma == "componentes") "Indivíduos por fitofisionomia (cada sigla separada)" else "Indivíduos por fitofisionomia", NULL, "Número de indivíduos") + tema_gg(e), w, h))
   }
   if (chave == "fito_diversidade") {
-    t <- F$classes$tabela; t$rot <- rotulo(t)
+    t <- F$classes$tabela; t <- t[t$riqueza > 0, , drop = FALSE]; t$rot <- rotulo(t)
     nh <- c("Riqueza", "Shannon", "Simpson")
     d <- rbind(data.frame(rot = t$rot, h = nh[1], v = t$riqueza), data.frame(rot = t$rot, h = nh[2], v = t$hill1), data.frame(rot = t$rot, h = nh[3], v = t$hill2)); d$h <- factor(d$h, levels = nh)
     return(gg(ggplot2::ggplot(d, ggplot2::aes(rot, v, fill = h)) + ggplot2::geom_col(position = ggplot2::position_dodge(.8), width = .75, na.rm = TRUE) +

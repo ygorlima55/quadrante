@@ -56,7 +56,7 @@ if (analise %in% c("anova", "kruskal", "quasipoisson", "correlacao_esforco", "re
   sem_confirmacao <- rownames(m_total)[!tem_visita]
   m <- m_total[tem_visita, , drop = FALSE]
 }
-un <- rownames(m); n <- length(un); multi <- any(grepl(" C[0-9]+$", un))
+un <- rownames(m); n <- length(un); multi <- any(tem_campanha(un))
 repetido <- anyDuplicated(ponto_fisico(un)) > 0
 
 # ---- fator de cada unidade amostral
@@ -66,7 +66,7 @@ fator_de <- function(f) {
   i <- match(un, P$ponto)
   v <- switch(f,
     fitofisionomia = P$fitofisionomia[i], grupo_amostral = P$grupo_amostral[i],
-    campanha = if (multi) sub(".* (C[0-9]+)$", "\\1", un) else NULL,
+    campanha = if (multi) campanha_da_unidade(un) else NULL,
     estacao = { cs <- ctx$campanhas; if (is.null(cs)) NULL else {
       cp <- if (!is.null(P$campanha)) P$campanha[i] else rep(NA, n); kk <- campanha_ctx(cs, cp); unname(ESTACOES[as.character(cs$estacao[kk])]) } },
     NULL)
@@ -376,9 +376,9 @@ if (analise == "correlacao_esforco") {
 }
 
 if (analise == "mantel") {
-  pc <- if (!is.null(P)) { q <- P; q$ponto <- sub(" C[0-9]+$", "", q$ponto); q[!duplicated(q$ponto), ] } else NULL
+  pc <- if (!is.null(P)) { q <- P; q$ponto <- ponto_fisico(q$ponto); q[!duplicated(q$ponto), ] } else NULL
   D <- tryCatch(distancias_pontos(pc), error = function(x) NULL)
-  mp <- m; if (multi) { f <- sub(" C[0-9]+$", "", un); mp <- rowsum(m, f) }
+  mp <- m; if (multi) { f <- ponto_fisico(un); mp <- rowsum(m, f) }
   comum <- if (is.null(D)) character() else intersect(rownames(mp), rownames(D))
   if (length(comum) < 5) pr("Coordenadas de 5 ou mais pontos", "falha", sprintf("Só %d pontos com coordenadas legíveis na aba de pontos.", length(comum)))
   else { pr("Coordenadas de 5 ou mais pontos", "ok", sprintf("%d pontos.", length(comum)))

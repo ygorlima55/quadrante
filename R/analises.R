@@ -91,6 +91,9 @@ analisar_grupo <- function(reg, nome, pontos_info, consol = NULL, campanhas = NU
               matriz = list(pontos = rownames(m), especies = colnames(m), valores = unname(m)))
   res$descritiva <- tryCatch(descritiva(reg, M, consol), error = function(e) NULL)
   if (!is.null(campanhas) && !is.null(reg$camp_cod)) res$campanhas <- comparar_campanhas(reg, M$excluidas, campanhas, pontos_info)
+  # modo Seca e chuva: cada campanha analisada sozinha e o comparativo completo (R/estacoes.R)
+  if (!is.null(campanhas) && !is.null(reg$camp_cod) && exists("analisar_estacoes"))
+    res$estacoes <- tryCatch(analisar_estacoes(reg, M$excluidas, campanhas, pontos_info, nome), error = function(e) { message("seca e chuva: ", conditionMessage(e)); NULL })
   # conta os pontos COM registro: a matriz inclui todos os pontos da aba Pontos, até os vazios
   n_com_registro <- sum(rowSums(pr) > 0)
   if (S < 2 || n_pt < 2 || n_com_registro < 2) { res$insuficiente <- TRUE; res$n_pontos_com_registro <- n_com_registro; return(res) }

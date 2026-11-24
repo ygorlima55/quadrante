@@ -11,7 +11,7 @@ set.seed(20261117)
 
 args <- commandArgs(TRUE)
 aqui <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])))
-for (f in c("ler.R", "conferir.R", "desenho.R", "analises.R", "descritiva.R", "saida.R", "ajustes_fig.R", "saida_extra.R", "saida_novas.R", "campanhas.R", "fitofisionomias.R", "correcoes.R", "relatorio_fauna.R", "contexto.R", "secundarios.R")) source(file.path(aqui, f), encoding = "UTF-8")
+for (f in c("ler.R", "conferir.R", "desenho.R", "analises.R", "descritiva.R", "saida.R", "ajustes_fig.R", "saida_extra.R", "saida_novas.R", "campanhas.R", "estacoes.R", "fitofisionomias.R", "correcoes.R", "relatorio_fauna.R", "contexto.R", "secundarios.R")) source(file.path(aqui, f), encoding = "UTF-8")
 if (!length(args)) stop("Informe a planilha: Rscript quadrante.R planilha.xlsx")
 planilha <- normalizePath(args[1], mustWork = TRUE)
 base <- tools::file_path_sans_ext(basename(planilha))
@@ -37,6 +37,9 @@ conf <- rbind(conferencia_completados(L), conf)
 if (!is.null(L$secundarios) && nrow(L$secundarios)) conf <- rbind(conf, data.frame(nivel = "informação", aba = L$aba_registros, linha = paste(L$secundarios$linha_planilha, collapse = ", "),
   campo = "Dado secundário", problema = sprintf("%d registros marcados como dado secundário (bibliografia, entrevista) ficaram fora das análises.", nrow(L$secundarios)),
   sugestao = "Eles aparecem na planilha 09, aba Dados secundários.", tipo = "", especie = "", ponto = "", dados = "", stringsAsFactors = FALSE))
+if (isTRUE(L$campanha_da_estacao)) conf <- rbind(conf, data.frame(nivel = "informação", aba = L$aba_registros, linha = "", campo = "Campanha",
+  problema = sprintf("A aba não tem a coluna Campanha: cada estação da planilha virou uma campanha (%s).", paste(sort(unique(na.omit(L$registros$campanha))), collapse = ", ")),
+  sugestao = "Para dar outros nomes às campanhas, acrescente a coluna Campanha. No Contexto do campo, use os mesmos nomes nas campanhas.", tipo = "", especie = "", ponto = "", dados = "", stringsAsFactors = FALSE))
 unlink(file.path(saida, "planilha_corrigida.xlsx"))
 tryCatch(gravar_planilha_corrigida(L, saida), error = function(e) msg("planilha corrigida não gravada:", conditionMessage(e)))
 # registros com erro que quebrariam ou distorceriam as contas (espécie vazia, Total inválido) saem das análises e ficam listados
@@ -54,7 +57,7 @@ msg(sum(conf$nivel == "erro"), "erros,", sum(conf$nivel == "atenção"), "pontos
 campanhas_cadastradas <- na.omit(L$pontos$campanha)
 if (length(unique(c(L$registros$campanha, campanhas_cadastradas[nzchar(campanhas_cadastradas)]))) >= 2) {
   L <- unidades_campanha(L)
-  msg(nrow(L$campanhas), "campanhas:", paste(L$campanhas$codigo, L$campanhas$campanha, sep = " = ", collapse = "; "), "| unidade amostral = ponto x campanha")
+  msg(nrow(L$campanhas), "campanhas:", paste(L$campanhas$codigo, L$campanhas$campanha, sep = " = ", collapse = "; "), "| unidade amostral = ponto (campanhas somadas)")
 }
 # contexto do campo escrito no painel: estação e esforço quando a planilha não traz (a planilha sempre vence)
 ctx <- ler_contexto(saida)
@@ -70,7 +73,8 @@ for (g in names(grupos)) {
   if (!nrow(reg)) next
   progresso(10 + 50 * (match(g, names(grupos)) - 1) / length(grupos), paste0("Análises de ", g, " (acumulação, estimadores, iNEXT, similaridade)"))
   msg("Analisando:", g)
-  i <- match(g, names(grupos)); R[[g]] <- analisar_grupo(reg, g, L$pontos, consol_atributos(L), L$campanhas, faixa = 10 + 50 * c(i - 1, i) / length(grupos))
+  i <- match(g, names(grupos)); camps <- L$campanhas; if (!is.null(camps)) attr(camps, "visitas") <- unique(rbind(L$visitas_campanha[, c("ponto", "campanha")], data.frame(ponto = L$registros$ponto_campo, campanha = L$registros$campanha)))   # visita = registro de qualquer grupo
+  R[[g]] <- analisar_grupo(reg, g, L$pontos, consol_atributos(L), camps, faixa = 10 + 50 * c(i - 1, i) / length(grupos))
 }
 avisos <- avisos_pressupostos(L, R)
 dist <- distancias_pontos(L$pontos_campo %||% L$pontos)
@@ -82,7 +86,7 @@ if (!is.null(dist) && any(is.finite(dist[upper.tri(dist)]))) {
 }
 
 if (!is.null(dist)) for (g in names(R)) if (!is.null(R[[g]]$similaridade$pares)) {
-  pp <- R[[g]]$similaridade$pares; pa <- sub(" C[0-9]+$", "", pp$ponto_a); pb <- sub(" C[0-9]+$", "", pp$ponto_b)
+  pp <- R[[g]]$similaridade$pares; pa <- ponto_fisico(pp$ponto_a); pb <- ponto_fisico(pp$ponto_b)
   ok <- pa %in% rownames(dist) & pb %in% rownames(dist)
   pp$distancia_m[ok] <- dist[cbind(pa[ok], pb[ok])]; R[[g]]$similaridade$pares <- pp
 }
@@ -98,6 +102,7 @@ progresso(96, "Gravando as tabelas em Excel")
 msg("Gravando tabelas em Excel...")
 tabs <- exportar_tabelas(L, conf, R, saida); unlink(file.path(saida, "tabelas_quadrante.xlsx"))
 tryCatch(exportar_relatorio_fauna(L, R, saida), error = function(e) msg("planilha 09 não gravada:", conditionMessage(e)))
+tryCatch(exportar_estacoes(R, saida), error = function(e) msg("planilha 10 (seca e chuva) não gravada:", conditionMessage(e)))
 
 # dados secundários (literatura da região): secundarios/regiao.json (painel) e secundarios/dados_secundarios.xlsx (agente ou à mão)
 SEC <- tryCatch({

@@ -1,7 +1,7 @@
 # Quadrante: figuras da descritiva, curvas de cada estimador (com valores), dominância com nomes,
 # similaridade didática, diversidade beta e Shannon com IC. Ligadas ao catálogo de saida.R.
 
-catalogo_extra <- function() c(catalogo_camp(), catalogo_novas(), catalogo_fito(), list(
+catalogo_extra <- function() c(catalogo_camp(), catalogo_novas(), catalogo_fito(), if (exists("catalogo_est")) catalogo_est(), list(
   familias = list(nome = "Riqueza e abundância por família", padrao = "lado_a_lado", formas = list(
     lado_a_lado = "Um gráfico: riqueza e abundância lado a lado (% do total)", colunas = "Dois painéis: riqueza em cima, abundância embaixo", duas = "Barras deitadas, riqueza e abundância", riqueza = "Só riqueza", abundancia = "Só abundância")),
   descritiva_pontos = list(nome = "Riqueza e abundância por ponto", padrao = "lado_a_lado", formas = list(
@@ -24,6 +24,7 @@ desenhar_extra <- function(chave, forma, G, O, e, arq, w, h, dpi, gg, pal, k) {
   if (chave %in% names(catalogo_camp())) return(desenhar_camp(chave, forma, G, e, gg, pal, k, w, h))
   if (chave %in% names(catalogo_novas())) return(desenhar_novas(chave, forma, G, e, gg, pal, k, w, h))
   if (chave %in% names(catalogo_fito())) return(desenhar_fito(chave, forma, G, e, gg, pal, k, w, h))
+  if (grepl("^est([0-9]|c)_", chave)) return(desenhar_est(chave, forma, G, e, gg, pal, k, w, h))
   gr <- G$grupo; D <- G$descritiva; tam <- e$fonte / 3.1
   rotx <- ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 40, hjust = 1))
   if (chave == "familias" && !is.null(D)) {
@@ -77,7 +78,7 @@ desenhar_extra <- function(chave, forma, G, O, e, arq, w, h, dpi, gg, pal, k) {
       titulos_gg(e, chave, paste(if (col == "riqueza") "Riqueza" else "Abundância", "por família"), NULL, if (col == "riqueza") "Número de espécies" else "Número de indivíduos") + tema_gg(e) + rotx))
   }
   if (chave == "descritiva_pontos" && !is.null(D)) {
-    tp <- D$pontos
+    tp <- D$pontos; tp <- tp[(tp$riqueza %||% 0) > 0 | (tp$abundancia %||% 0) > 0, , drop = FALSE]   # ponto sem registro não aparece
     if (forma == "familias") {
       le <- D$especies; pts <- tp$ponto
       d <- do.call(rbind, lapply(pts, function(p) { z <- le[le[[p]] > 0, ]; if (!nrow(z)) return(NULL); as.data.frame(table(familia = z$familia), responseName = "n") |> transform(ponto = p) }))

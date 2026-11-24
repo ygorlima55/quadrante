@@ -1,5 +1,8 @@
-# O nome da unidade é criado por unidades_campanha() (por exemplo, "P1 C2").
-ponto_fisico <- function(unidade) sub(" C[0-9]+$", "", unidade)
+# O nome da unidade é criado por unidades_campanha(): ponto, ponto médio e o nome da campanha (por exemplo, "P1 · Chuva").
+SEP_CAMP <- " · "
+ponto_fisico <- function(unidade) { u <- as.character(unidade); i <- regexpr(SEP_CAMP, u, fixed = TRUE); ifelse(i > 0, substr(u, 1, i - 1), u) }
+tem_campanha <- function(unidade) grepl(SEP_CAMP, as.character(unidade), fixed = TRUE)
+campanha_da_unidade <- function(unidade) { u <- as.character(unidade); i <- regexpr(SEP_CAMP, u, fixed = TRUE); ifelse(i > 0, substring(u, i + nchar(SEP_CAMP)), NA_character_) }
 
 plano_permutacao <- function(unidades, grupo) {
   ponto <- factor(ponto_fisico(unidades))

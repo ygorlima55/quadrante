@@ -152,7 +152,13 @@ ler_planilha <- function(arquivo) {
   reg$genero  <- sub(" .*$", "", reg$especie)
   g <- sem_acento(ifelse(is.na(reg$grupo), "", reg$grupo))
   reg$grupo_pad <- grupo_padrao(reg$grupo)
-  if (all(is.na(reg$campanha) | reg$campanha == "")) reg$campanha <- "Campanha única"
+  # sem coluna Campanha: se a estação (Sazonalidade, Estação) tem 2 ou mais valores, cada estação vira uma campanha (23/11/2026)
+  campanha_da_estacao <- FALSE
+  if (all(is.na(reg$campanha) | reg$campanha == "")) {
+    ok_est <- !is.na(reg$estacao) & nzchar(reg$estacao)
+    if (any(ok_est) && length(unique(reg$estacao[ok_est])) >= 2) { reg$campanha <- ifelse(ok_est, reg$estacao, NA_character_); campanha_da_estacao <- TRUE }
+    else reg$campanha <- "Campanha única"
+  }
   # dados secundários (bibliografia, entrevista) não entram nas estatísticas (exigência do IEMA-ES e boa prática)
   sec <- !is.na(reg$dado) & grepl("secund|entrevist|bibliogr|literat", sem_acento(reg$dado))
   secundarios <- reg[sec, , drop = FALSE]; reg <- reg[!sec, , drop = FALSE]
@@ -209,7 +215,7 @@ ler_planilha <- function(arquivo) {
     if (!is.null(consol$familia_cons)) { consol$familia <- ifelse(is.na(consol$familia), consol$familia_cons, consol$familia); consol$grupo <- ifelse(is.na(consol$grupo), consol$grupo_cons, consol$grupo) }
   }
   list(arquivo = arquivo, aba_registros = a_bru, aba_pontos = a_pt, aba_consolidada = a_con,
-       registros = reg, pontos = pontos, consolidada = consol, secundarios = secundarios)
+       registros = reg, pontos = pontos, consolidada = consol, secundarios = secundarios, campanha_da_estacao = campanha_da_estacao)
 }
 
 total_de_campo_valido <- function(x) is.finite(x) & x >= 0 & x == floor(x)
@@ -265,7 +271,7 @@ ler_consolidada <- function(tmp, a_con) {
       linhas <- k[(h + 1):nrow(k), , drop = FALSE]
       nomes <- norm_txt(linhas[[1]])
       vals <- do.call(cbind, lapply(cps, function(j) suppressWarnings(as.numeric(gsub(",", ".", ifelse(norm_txt(linhas[[j]]) %in% c("-", "–", ""), "0", linhas[[j]]))))))
-      tem <- rowSums(!is.na(vals)) > 0 & !is.na(nomes) & !(sem_acento(nomes) %in% c("total", ""))
+      tem <- rowSums(!is.na(vals)) > 0 & !is.na(nomes) & nzchar(sem_acento(nomes)) & !grepl("^(total|soma|riqueza|abundancia|numero de|no? de |n[^a-z ]{1,2} ?de )", sem_acento(nomes))
       if (any(tem)) {
         consol <- data.frame(linha_planilha = which(tem) + h, especie_completa = nomes[tem],
                              especie = binomio(nomes[tem]), stringsAsFactors = FALSE)

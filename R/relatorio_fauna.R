@@ -118,7 +118,7 @@ analisar_relatorio <- function(reg, m, nome, pontos_info = NULL, consol = NULL, 
     campo <- if (!is.null(reg$ponto_campo)) reg$ponto_campo else reg$ponto
     visitas <- unique(data.frame(ponto = campo, nivel = reg[[chave]]))
     if (chave == "campanha" && !is.null(pontos_info$campanha)) {
-      visitas <- unique(rbind(visitas, data.frame(ponto = sub(" C[0-9]+$", "", pontos_info$ponto), nivel = pontos_info$campanha)))
+      visitas <- unique(rbind(visitas, data.frame(ponto = ponto_fisico(pontos_info$ponto), nivel = pontos_info$campanha)))
     }
     visitas <- visitas[!is.na(visitas$nivel) & nzchar(visitas$nivel), , drop = FALSE]
     niv <- sort(unique(visitas$nivel))
@@ -176,7 +176,7 @@ ficha_metodos <- function(L, R) {
   data.frame(item = c("Programa", paste("Pacote", pk), "Unidade amostral", "Curva de acumulação", "Estimadores por incidência", "Estimadores por abundância",
                       "Rarefação e extrapolação", "Diversidade", "Equitabilidade", "Similaridade e agrupamento", "Dados secundários", "Planilha de origem"),
              valor = c(R.version.string, v,
-                       if (!is.null(L$campanhas)) "ponto x campanha" else "ponto amostral",
+                       if (!is.null(L$campanhas)) "ponto amostral, com as campanhas somadas (a comparação entre campanhas fica na seção Campanhas)" else "ponto amostral",
                        "vegan::specaccum, método aleatório, todas as ordens até 999, senão 999 sorteios", "vegan::specpool e poolaccum (Chao 2, Jackknife 1 e 2, Bootstrap), até 199 ordens",
                        "vegan::estimateR (Chao 1, ACE)", "iNEXT (números de Hill q = 0, 1, 2), 200 réplicas bootstrap",
                        "Shannon (log natural), Simpson, Berger-Parker, Margalef, Menhinick, alfa de Fisher, números de Hill",

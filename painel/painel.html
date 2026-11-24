@@ -683,12 +683,12 @@ body.analisando #analiseQuad.visivel{opacity:1!important}
   <div style="display:flex;justify-content:space-between;align-items:center"><span class="rotulo">Aparência dos gráficos</span><button id="fechaEditor">Fechar</button></div>
   <p class="nota">Depois de mudar, clique em <b>Redesenhar no R</b> (cerca de 2 min). Os resultados não mudam. Para recalcular com a planilha corrigida, use <b>Planilha → Atualizar planilha</b>.</p>
   <h3>Estilo</h3>
-  <div class="linha">Tema <select id="selTemaR"><option value="salvia">Sálvia (cinza quente, sem moldura)</option><option value="sintese">Síntese (papel creme e grade)</option><option value="prancha">Prancha (fundo branco)</option><option value="ggplot">ggplot2 padrão (cinza)</option><option value="bw">theme_bw</option><option value="classic">theme_classic</option><option value="minimal">theme_minimal</option></select></div>
+  <div class="linha">Tema <select id="selTemaR"><option value="modelo">Modelo (Inter, título forte, legenda embaixo)</option><option value="salvia">Sálvia (cinza quente, sem moldura)</option><option value="sintese">Síntese (papel creme e grade)</option><option value="prancha">Prancha (fundo branco)</option><option value="ggplot">ggplot2 padrão (cinza)</option><option value="bw">theme_bw</option><option value="classic">theme_classic</option><option value="minimal">theme_minimal</option></select></div>
   <div class="linha">Fundo <div class="seg" id="segTema"><button data-v="claro">Branco</button><button data-v="escuro">Lousa</button></div></div>
   <h3>Paletas prontas</h3>
   <p class="nota">Troca as cores de todas as figuras. Paletas do Cerrado conferidas para daltonismo (protanopia e deuteranopia) e contraste no fundo branco.</p>
   <div class="galeria-pal" id="galeriaPaletas"></div>
-  <div class="linha" hidden>Cores <select id="selPaleta"><option value="salvia">Sálvia</option><option value="sintese">Síntese</option><option value="prancha">Prancha</option><option value="hue">R padrão</option><option value="okabe">Okabe-Ito</option><option value="cerrado">Cerrado</option><option value="cinza">Tons de cinza</option><option value="cerrado_seca">Cerrado na seca</option><option value="cerrado_chuva">Cerrado na chuva</option><option value="vereda">Vereda</option><option value="ipes">Ipês</option><option value="mapedados">Mapas</option><option value="terra">Terra</option><option value="livre">Personalizada</option></select></div>
+  <div class="linha" hidden>Cores <select id="selPaleta"><option value="modelo">Modelo (chuva e seca)</option><option value="salvia">Sálvia</option><option value="sintese">Síntese</option><option value="prancha">Prancha</option><option value="hue">R padrão</option><option value="okabe">Okabe-Ito</option><option value="cerrado">Cerrado</option><option value="cinza">Tons de cinza</option><option value="cerrado_seca">Cerrado na seca</option><option value="cerrado_chuva">Cerrado na chuva</option><option value="vereda">Vereda</option><option value="ipes">Ipês</option><option value="mapedados">Mapas</option><option value="terra">Terra</option><option value="livre">Personalizada</option></select></div>
   <h3>Criar pela harmonia (regras do Adobe Color)</h3>
   <p class="nota">Escolha uma cor base e a regra; o programa monta 8 cores que combinam e confere o daltonismo. Paletas de harmonia quase sempre têm cores que daltônicos confundem; para o laudo, prefira uma paleta do Cerrado ou a Okabe-Ito.</p>
   <div class="linha">Cor base <input type="color" id="harmBase" value="#6b7d2e"></div>
@@ -703,8 +703,8 @@ body.analisando #analiseQuad.visivel{opacity:1!important}
   <button id="adobeUsar" disabled>Usar estas cores</button>
   <h3>Cores uma a uma</h3>
   <div class="cores" id="cores"></div>
-  <div class="linha">Letra dos títulos <select id="selFTitulo"><option>Segoe UI Semibold</option><option>Georgia Pro</option><option>Sitka Heading</option><option>Cambria</option><option>Bahnschrift</option><option>Arial</option><option>Times New Roman</option></select></div>
-  <div class="linha">Letra do texto <select id="selFTexto"><option>Bahnschrift</option><option>Segoe UI</option><option>Arial</option><option>Calibri</option><option>Times New Roman</option></select></div>
+  <div class="linha">Letra dos títulos <select id="selFTitulo"><option>Inter Black</option><option>Segoe UI Semibold</option><option>Georgia Pro</option><option>Sitka Heading</option><option>Cambria</option><option>Bahnschrift</option><option>Arial</option><option>Times New Roman</option></select></div>
+  <div class="linha">Letra do texto <select id="selFTexto"><option>Inter</option><option>Bahnschrift</option><option>Segoe UI</option><option>Arial</option><option>Calibri</option><option>Times New Roman</option></select></div>
   <div class="linha">Tamanho da letra <input type="number" id="nFonte" min="8" max="18" step="1" style="width:70px"></div>
   <div class="linha">Espessura das linhas <input type="number" id="nLinha" min="0.3" max="3" step="0.1" style="width:70px"></div>
   <div class="linha">Tamanho dos pontos <input type="number" id="nPonto" min="0.5" max="6" step="0.5" style="width:70px"></div>
@@ -755,6 +755,8 @@ if (!H) { document.body.innerHTML = "<p style='padding:40px;font-family:Georgia'
 
 /* ---------------- estilo do R ---------------- */
 const PALETAS = {
+  // 24/11/2026: paleta do tema Modelo (chuva #00a5bf, seca #ee7d00), validada para daltonismo
+  modelo: ["#00a5bf","#ee7d00","#1aa77a","#6a4fd8","#00809a","#e0a800","#c2417a","#b5651d"],
   salvia: ["#3f8c62","#d0482a","#2a5cab","#a87700","#9a3f8f","#5c8a00","#3d8fdc","#ad4f19"],
   sintese: ["#008E96","#D9661F","#2F62A8","#A67414","#9A3F8F","#5C8A00","#3D8FDC","#8C4A1E"],
   prancha: ["#2a5cab","#d0482a","#00897b","#c28a00","#9a3f8f","#5c8a00","#3d8fdc","#ad4f19"],
@@ -771,8 +773,8 @@ const PALETAS = {
   terra:         ["#462D20","#CB9867","#536A2C","#8196AB","#305F5F","#A17B1C","#713418","#A7A772"]
 };
 const CAT = H.catalogo || {};
-const PADRAO = { tema_r:"salvia", tema:"claro", paleta:"salvia", cores:null, fonte:11, familia:"Times New Roman", familia_titulo:"Times New Roman", linha:1, ponto:2.5, legenda:"top",
-  faixa:true, grade:false, mostrar_titulo:true, mostrar_grupo:false, titulos:{}, formas:{}, cores_fig:{}, ajustes:{}, largura:18, altura:11.5, dpi:300, painel:"claro" };
+const PADRAO = { tema_r:"modelo", tema:"claro", paleta:"modelo", cores:null, fonte:11, familia:"Inter", familia_titulo:"Inter Black", linha:1, ponto:2.5, legenda:"bottom",
+  faixa:true, grade:true, mostrar_titulo:false, mostrar_grupo:false, titulos:{}, formas:{}, cores_fig:{}, ajustes:{}, largura:18, altura:11.5, dpi:300, painel:"claro" };
 const doR = H.estilo && typeof H.estilo === "object" ? H.estilo : {};
 let E = Object.assign(JSON.parse(JSON.stringify(PADRAO)), store.get("herp.estilo5", {}));
 if (doR._painel) Object.assign(E, doR._painel);
@@ -781,11 +783,15 @@ for (const k of ["titulos","formas","cores_fig","ajustes"]) if (doR[k] && !Array
 if ((E._v || 0) < 6) { E.familia = "Times New Roman"; E.familia_titulo = "Times New Roman"; if (E.legenda === "bottom") E.legenda = "top"; E._v = 6; }
 // 19/11/2026: o nome do grupo (Herpetofauna, Anuros...) sai das figuras; dá para religar em Editar títulos
 if ((E._v || 0) < 7) { E.mostrar_grupo = false; E.grade = false; E._v = 7; }   // e fundo branco sem linhas de grade
+// 24/11/2026: tema Modelo (gráficos do documento "Estrutura seca e chuva") em todas as figuras; vale uma vez para estilos antigos
+if ((E._v || 0) < 8) { Object.assign(E, {tema_r:"modelo", paleta:"modelo", familia:"Inter", familia_titulo:"Inter Black", legenda:"bottom", grade:true}); E._v = 8; }
+// 24/11/2026: título das figuras desligado por padrão (pedido do usuário); religa em "Mostrar título"
+if ((E._v || 0) < 9) { E.mostrar_titulo = false; E._v = 9; }
 const salvaE = () => store.set("herp.estilo5", E);
 const cores = () => E.paleta === "livre" && E.cores ? E.cores : (PALETAS[E.paleta] || PALETAS.prancha);
 function estiloR(){
   const cm = v => Math.round(v / 2.54 * 100) / 100;
-  return {paleta: cores(), tema_r: E.tema_r, tema: E.tema, fonte: +E.fonte, familia: E.familia, familia_titulo: E.familia_titulo, faixa: E.faixa, grade: E.grade,
+  return {versao_estilo: 9, paleta: cores(), tema_r: E.tema_r, tema: E.tema, fonte: +E.fonte, familia: E.familia, familia_titulo: E.familia_titulo, faixa: E.faixa, grade: E.grade,
     linha: +E.linha, ponto: +E.ponto, legenda: E.legenda, mostrar_titulo: E.mostrar_titulo, mostrar_grupo: E.mostrar_grupo !== false, largura: cm(E.largura), altura: cm(E.altura), dpi: +E.dpi,
     titulos: E.titulos, formas: E.formas, cores_fig: E.cores_fig || {}, ajustes: E.ajustes || {}, _painel: Object.fromEntries(Object.keys(PADRAO).filter(k => !["titulos","formas","cores_fig","ajustes"].includes(k)).map(k => [k, E[k]]))};
 }
@@ -1066,7 +1072,7 @@ function editarNaFigura(q, chave, base, tit){
         if (d < dm) { dm = d; melhor = it; } } }
     return melhor;
   };
-  const regiao = (fx, fy) => fy < .12 ? "titulo" : fy > .93 ? "x" : fx < .07 ? "y" : null;
+  const regiao = (fx, fy) => fy < .12 ? "titulo" : fy > .93 ? "x" : fx < .07 ? "y" : null;   // com títulos desligados, um título escrito aqui aparece só nesta figura (mostra_titulo no R, 24/11/2026)
   const NOMES_R = {titulo:"o título", x:"o nome do eixo horizontal", y:"o nome do eixo vertical"};
   img.addEventListener("mousemove", ev => { if (pop) return; const {fx, fy, px, py} = ponto(ev), it = achaItem(fx, fy), rg = it ? null : regiao(fx, fy);
     const aj = E.ajustes[chave] || {}, t = it ? `${(aj.nomes || {})[it.rotulo] || it.rotulo}: clique para mudar cor, nome ou tirar` : rg ? `Clique para reescrever ${NOMES_R[rg]}` : "";
@@ -1095,7 +1101,7 @@ function editarNaFigura(q, chave, base, tit){
       const pad = (((H.titulos_padrao || {})[grupo] || {})[chave]) || {}, t = E.titulos[chave] || {};
       const ini = rg === "titulo" ? (t.titulo || pad.titulo || tit || "") : (t[rg] || pad[rg] || "");
       pop.innerHTML = `<b>Reescrever ${NOMES_R[rg]}</b><label><select data-p="qual">${Object.entries({titulo:"Título", x:"Eixo horizontal", y:"Eixo vertical"}).map(([k, n]) => `<option value="${k}" ${k === rg ? "selected" : ""}>${n}</option>`).join("")}</select></label>` +
-        `<input type="text" data-p="txt" value="${esc(ini)}"><p class="nota">Em branco volta ao texto padrão.</p><div class="bts"><button class="forte" data-p="ok">Aplicar</button><button data-p="nao">Cancelar</button></div>`;
+        `<input type="text" data-p="txt" value="${esc(ini)}"><p class="nota">Em branco volta ao texto padrão.${E.mostrar_titulo ? "" : " Os títulos estão desligados; um título escrito aqui aparece só nesta figura."}</p><div class="bts"><button class="forte" data-p="ok">Aplicar</button><button data-p="nao">Cancelar</button></div>`;
       const sel = pop.querySelector('[data-p="qual"]'), txt = pop.querySelector('[data-p="txt"]');
       sel.onchange = () => { const k = sel.value; txt.value = k === "titulo" ? (t.titulo || pad.titulo || tit || "") : (t[k] || pad[k] || ""); };
       const ok = () => { const k = sel.value, v = txt.value.trim(), n = Object.assign({}, E.titulos[chave] || {});
@@ -1155,7 +1161,7 @@ function editorTitulos(chave){
 /* ---------------- paletas prontas, harmonia (regras do Adobe Color) e arquivo .ase (19/11/2026) ---------------- */
 const PALETA_INFO = { cerrado_seca:["Cerrado na seca","capim dourado, latossolo, céu seco"], cerrado_chuva:["Cerrado na chuva","mata, ipê-amarelo, água"],
   vereda:["Vereda","buriti, água e brejo"], ipes:["Ipês","amarelo, roxo e rosa dos ipês"], mapedados:["Mapas","as cores dos mapas do Mapedados"],
-  terra:["Terra","solo, rocha e folhas secas"], salvia:["Sálvia","padrão do programa"], okabe:["Okabe-Ito","referência para daltonismo"],
+  modelo:["Modelo","padrão do programa: chuva e seca"], terra:["Terra","solo, rocha e folhas secas"], salvia:["Sálvia","tema anterior"], okabe:["Okabe-Ito","referência para daltonismo"],
   prancha:["Prancha","azul e vermelho"], sintese:["Síntese","petróleo e laranja"], cerrado:["Cerrado (anterior)","tons de terra"], hue:["R padrão","cores do ggplot2"], cinza:["Tons de cinza","para impressão em preto e branco"] };
 const CVD = {normal:[[1,0,0],[0,1,0],[0,0,1]], protan:[[.152286,1.052583,-.204868],[.114503,.786281,.099216],[-.003882,-.048116,1.051998]],
   deutan:[[.367322,.860646,-.227968],[.280085,.672501,.047413],[-.011820,.042940,.968881]]};   // Machado et al. 2009, gravidade 1
@@ -1275,7 +1281,7 @@ const METODOS = ["Busca ativa", "Procura visual limitada por tempo", "Zoofonia (
 const pastaLev = () => String(H.meta.caminho || "").replace(/[\\/][^\\/]+$/, "").replace(/\//g, "\\");
 function copia(t, b){ (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { if (b) b.textContent = "Copiado"; }).catch(() => prompt("Copie o texto:", t)); }
 const semAc = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-const nPontosCampo = () => new Set(arr(H.pontos).map(p => String(p.ponto).replace(/ C\d+$/, ""))).size || (H.grupos[grupo] || {}).n_pontos || 0;
+const nPontosCampo = () => new Set(arr(H.pontos).map(p => String(p.ponto).split(" · ")[0])).size || (H.grupos[grupo] || {}).n_pontos || 0;
 function ctxAtual(){
   const c = H.contexto_json || {}, camp = arr(H.campanhas);
   const lista = arr(c.campanhas).length ? arr(c.campanhas).map(x => Object.assign({}, x)) : (camp.length ? camp.map(x => ({nome:x.campanha, codigo:x.codigo})) : [{nome:"Campanha 1"}]);
@@ -1344,7 +1350,7 @@ const pegaCatalogo = () => (CATALOGO ? Promise.resolve(CATALOGO) : (LID ? fetch(
   .then(c => (CATALOGO = c && c.analises ? c : {analises:[], servicos:{}})).catch(() => (CATALOGO = {analises:[], servicos:{}}));
 function secaoExiste(id, sub){ const G = H.grupos[grupo] || {};
   if (id === "laudo") { const R = G.relatorio; if (!R) return false; if (sub === "metodo") return !!R.por_metodo; if (sub === "esforco") return !!R.esforco; if (sub === "sazonal") return arr(R.sazonal).length > 0; return true; }
-  if (id === "campanhas") return !!G.campanhas; if (id === "fitofisionomias") return !!G.fitofisionomias;
+  if (id === "campanhas") return !!G.campanhas && !campJunto(G); if (id === "fitofisionomias") return !!G.fitofisionomias;
   if (["riqueza", "diversidade", "similaridade", "dominancia"].includes(id)) return !!G.acumulacao; return true; }
 const FALTA_SECAO = {campanhas:"precisa de 2 ou mais campanhas na planilha (coluna Campanha)", fitofisionomias:"precisa da fitofisionomia na aba de pontos",
   laudo_esforco:"precisa do esforço: aba de pontos ou contexto do campo", laudo_sazonal:"precisa de 2 campanhas ou estações (coluna Estação ou contexto do campo)", laudo_metodo:"precisa da coluna Método na planilha"};
@@ -1379,7 +1385,8 @@ function blocoSugestoes(alvo, servico){
 let PEDIDO_SEL = null;
 function fatoresDisponiveis(){ const P = arr(H.pontos), f = [];
   if (P.some(p => p.fitofisionomia)) f.push(["fitofisionomia", "Fitofisionomia"]); if (P.some(p => p.grupo_amostral)) f.push(["grupo_amostral", "Grupo amostral"]);
-  if (arr(H.campanhas).length > 1) f.push(["campanha", "Campanha"]); if (new Set(arr((H.contexto_json || {}).campanhas).map(c => c.estacao).filter(Boolean)).size > 1) f.push(["estacao", "Estação"]); return f; }
+  // com 2 ou mais campanhas cada ponto soma chuva e seca: campanha e estação não separam pontos (a comparação fica na seção Campanhas)
+  if (arr(H.campanhas).length < 2 && new Set(arr((H.contexto_json || {}).campanhas).map(c => c.estacao).filter(Boolean)).size > 1) f.push(["estacao", "Estação"]); return f; }
 function naoAchou(res, q){
   const pr = `No Quadrante (projetos/quadrante), acrescente ao catálogo de análises sob pedido (R/pedidos_catalogo.json e R/pedido.R) a análise: "${q}". Diga o pacote do R e a função, veja se o pacote está instalado em C:\\DadosBio\\envs\\R-herpetodados (instalar só com a minha aprovação), escreva a conferência dos pressupostos e a figura em ggplot2 no estilo do programa. Levantamento para testar: ${pastaLev()}.`;
   res.innerHTML = `<div class="aviso"><span><span class="pill atenção">fora do catálogo</span></span><div><b>“${esc(q)}” não está no catálogo</b>Copie o pedido e cole numa conversa com o assistente para incluir a análise no catálogo, com pacote, pressupostos e figura.</div></div>`;
@@ -1660,7 +1667,8 @@ const SECOES = [
   ["dominancia", "Dominância", "ranque das espécies"],
   ["secundarios", "Dados secundários", "literatura da região e o campo"],
   ["laudo", "Para o laudo", "interesse, métodos, esforço"],
-  ["campanhas", "Campanhas", "o que mudou entre campanhas"],
+  ["estacoes", "Seca e chuva", "cada campanha sozinha e a comparação completa"],
+  ["campanhas", "Campanhas", "chuva × seca: descritiva, exclusivas, curvas, estimadores, diversidade"],
   ["pedidos", "Pedir análise", "o R confere e roda"],
   ["relatorio", "Relatório", "o que você marcou"]
 ];
@@ -1985,17 +1993,138 @@ function render(){
   figuraR(s6, "whittaker", "Curva de dominância"); texto(s6, G.abundancia.texto);
   tabela(s6, "dominancia", "Ranque de abundância", [{t:"#", k:"posicao", num:1}, {t:"Espécie", f:r => esc(r.especie), esp:1}, {t:"Indivíduos", k:"n", num:1}, {t:"Relativa", f:r => pc(r.relativa, 1), num:1}, {t:"Pontos", k:"pontos", num:1}, {t:"Constância", k:"constancia"}], arr(G.abundancia.tabela), true);
 
+  // ---- Seca e chuva (24/11/2026): cada campanha sozinha (abas Chuva e Seca) e a comparação, no padrão do documento "Estrutura seca e chuva"
+  if (G.estacoes){
+    const C = G.estacoes, RS = arr(C.resumo), rot = RS.map(r => r.estacao), Ee = arr(C.estacoes);
+    const s9 = secao("estacoes", "Seca e chuva", "Cada campanha analisada sozinha, a partir da planilha juntada, e a comparação entre elas. A unidade amostral é o ponto visitado na campanha; nas outras seções cada ponto soma as campanhas.");
+    const ABAS9 = rot.map((r, i) => ["c" + (i + 1), r]).concat([["comp", "Comparação"]]);
+    let sub9 = store.get("herp.sub9", "c1"); if (!ABAS9.some(a => a[0] === sub9)) sub9 = "c1";
+    abas(s9, ABAS9, sub9, v => { store.set("herp.sub9", v); render(); });
+    const h3 = t => s9.appendChild(el("h3", {}, esc(t)));
+    const rel = (t, rot_ = "No relatório") => { if (t) { const b = el("div", {class:"resultado"}, `<b>${esc(rot_)}</b>${esc(t)}`); s9.appendChild(b); } };
+    const n_ = (v, d = 1) => v == null || v === "NA" ? "–" : nf(v, d);
+    const pv = p => p == null ? "–" : (p < 0.001 ? "< 0,001" : nf(p, 3));
+    const fig = (ch, tit, tem = true) => { if (tem) figuraR(s9, ch, tit); };
+    const T = C.texto || {};
+    if (sub9 !== "comp"){
+      const i = +sub9.slice(1), s = rot[i - 1], X = (C.campanhas || {})[s] || {}, r = RS[i - 1] || {}, pre = "est" + i + "_", sub = ((Ee[i - 1] || {}).subtitulo || s);
+      h3("1. Resumo da campanha");
+      tabela(s9, pre + "resumo", "Resumo: " + sub, [{t:"Riqueza", k:"riqueza", num:1}, {t:"Abundância", k:"abundancia", num:1}, {t:"Famílias", k:"familias", num:1}, {t:"Shannon (H')", f:x => n_(x.shannon, 2), num:1}, {t:"Simpson (1 – D)", f:x => n_(x.simpson, 2), num:1}, {t:"Pielou (J')", f:x => n_(x.pielou, 2), num:1}, {t:"Berger-Parker", f:x => n_(x.berger_parker, 2), num:1}, {t:"Espécie dominante", f:x => `<i>${esc(x.dominante || "–")}</i>`, csv:x => x.dominante}], [r]);
+      h3("2. Esforço e suficiência amostral");
+      fig(pre + "acumulacao", "Curva de acumulação de espécies");
+      const est = arr(X.est);
+      if (est.length) tabela(s9, pre + "estimadores", "Riqueza observada e estimada", est.map(e => ({t:e.estimador, f:() => n_(e.valor, e.estimador === "Observada" ? 0 : 1), num:1})).concat([{t:"Completude", f:() => r.completude == null ? "–" : pc(r.completude, 0), num:1}]), [{}]);
+      h3("3. Composição");
+      fig(pre + "familias", "Riqueza por família"); fig(pre + "abundantes", "Espécies mais abundantes");
+      h3("4. Distribuição espacial");
+      fig(pre + "pontos", "Riqueza e abundância por ponto"); fig(pre + "fito", "Riqueza e abundância por fitofisionomia", !!X.fito); fig(pre + "metodo", "Riqueza e abundância por método", !!X.metodo);
+      h3("5. Diversidade");
+      fig(pre + "diversidade", "Diversidade por ponto");
+      if (X.fito){ tabela(s9, pre + "fito", "Diversidade por fitofisionomia", [{t:"Fitofisionomia", k:"fitofisionomia"}, {t:"Indivíduos", k:"N", num:1}, {t:"Espécies", k:"S", num:1}, {t:`Rarefeita (n = ${X.fito_nmin})`, f:x => n_(x.rarefeita, 1), num:1}, {t:"Shannon", f:x => n_(x.H, 2), num:1}, {t:"Pielou", f:x => n_(x.J, 2), num:1}], arr(X.fito));
+        fig(pre + "rarefacao_fito", "Rarefação por fitofisionomia"); }
+      h3("6. Estrutura da comunidade");
+      fig(pre + "ranking", "Curva de ranking de abundância"); fig(pre + "dajoz", "Constância de ocorrência (Dajoz)");
+      const dj = arr(X.dajoz), cnt = c => dj.filter(x => x.categoria === c).length;
+      if (dj.length) tabela(s9, pre + "dajoz", "Constância de ocorrência (Dajoz)", [{t:"Constante", f:() => cnt("Constante"), num:1}, {t:"Acessória", f:() => cnt("Acessória"), num:1}, {t:"Acidental", f:() => cnt("Acidental"), num:1}], [{}]);
+      h3("7. Similaridade entre pontos");
+      fig(pre + "nmds", "Ordenação NMDS dos pontos", !!X.nmds); fig(pre + "upgma", "Agrupamento dos pontos (UPGMA)", !!X.upgma);
+      const lin = [];
+      if (X.permanova) lin.push({teste:"PERMANOVA · fitofisionomia", F:n_(X.permanova.F, 2), R2:n_(X.permanova.R2, 2), p:pv(X.permanova.p)});
+      if (X.permdisp) lin.push({teste:"PERMDISP · fitofisionomia", F:n_(X.permdisp.F, 2), R2:"–", p:pv(X.permdisp.p)});
+      if (X.nmds) lin.push({teste:"Stress do NMDS", F:n_(X.nmds.stress, 2), R2:"", p:""});
+      if (X.upgma) lin.push({teste:"Correlação cofenética (UPGMA)", F:n_(X.upgma.cofenetica, 2), R2:"", p:""});
+      if (lin.length) tabela(s9, pre + "similaridade", "Similaridade entre pontos", [{t:"Teste", k:"teste"}, {t:"F", k:"F", num:1}, {t:"R²", k:"R2", num:1}, {t:"p", k:"p", num:1}], lin);
+      rel(T.resumo);
+    } else {
+      h3("1. Riqueza e abundância lado a lado");
+      fig("estc_pontos", "Riqueza e abundância por ponto"); fig("estc_grupos", "Riqueza e abundância por estação"); fig("estc_fito", "Riqueza e abundância por fitofisionomia", !!C.fito); fig("estc_metodo", "Riqueza e abundância por método", !!C.metodo);
+      rel(T.resumo);
+      h3("2. Suficiência amostral");
+      fig("estc_acumulacao", "Curva de acumulação de espécies"); fig("estc_estimadores", "Riqueza observada e estimada");
+      const E2 = arr(C.estimadores), nomes = [...new Set(E2.map(x => x.estimador))];
+      if (E2.length) tabela(s9, "estc_estimadores", "Riqueza observada e estimada de cada estação", [{t:"Estação", k:"estacao"}].concat(nomes.map(n => ({t:n, f:x => n_((E2.find(e => e.estacao === x.estacao && e.estimador === n) || {}).valor, n === "Observada" ? 0 : 1), num:1}))).concat([{t:"Completude", f:x => { const q = RS.find(y => y.estacao === x.estacao) || {}; return q.completude == null ? "–" : pc(q.completude, 0); }, num:1}]), rot.map(e => ({estacao:e})));
+      fig("estc_rarefacao", "Curvas de rarefação e extrapolação", !!C.rarefacao_curvas);
+      if (arr(C.rarefacao).length) tabela(s9, "estc_rarefacao", "Rarefação e extrapolação (iNEXT, q = 0)", [{t:"Grupo", k:"grupo"}, {t:"Estação", k:"estacao"}, {t:"Indivíduos", k:"N", num:1}, {t:"Espécies", k:"S", num:1}, {t:"Chao 1", f:x => n_(x.chao1, 1), num:1}, {t:"Cobertura", f:x => x.cobertura == null ? "–" : pc(x.cobertura, 1), num:1}, {t:"Rarefeita (n)", f:x => `${n_(x.rarefeita, 1)} (${x.n_rarefeita})`, num:1}], arr(C.rarefacao));
+      rel(T.suficiencia);
+      h3("3. Diversidade");
+      const ind = [["Riqueza (S)", "riqueza", 0], ["Abundância (N)", "abundancia", 0], ["Shannon (H')", "shannon", 2], ["Simpson (1 – D)", "simpson", 2], ["Pielou (J')", "pielou", 2], ["Berger-Parker (d)", "berger_parker", 2], ["Hill q = 1", "hill1", 2], ["Hill q = 2", "hill2", 2]];
+      tabela(s9, "estc_indices", "Índices de diversidade", [{t:"Índice", k:"nome"}].concat(rot.map(e => ({t:e, f:x => n_((RS.find(y => y.estacao === e) || {})[x.k], x.d), num:1}))), ind.map(([nome, k, d]) => ({nome, k, d})));
+      const hu = arr(C.hutcheson);
+      if (hu.length) tabela(s9, "estc_hutcheson", "Teste t de Hutcheson (Shannon)", [{t:"Par", f:x => `${x.estacao_a} × ${x.estacao_b}`}, {t:"H'", f:x => `${n_(x.H_a, 2)} × ${n_(x.H_b, 2)}`}, {t:"t", f:x => n_(x.t, 2), num:1}, {t:"gl", f:x => n_(x.gl, 0), num:1}, {t:"p", f:x => pv(x.p), num:1}], hu);
+      fig("estc_indices", "Índices de diversidade"); fig("estc_hill", "Números de Hill (espécies efetivas)"); fig("estc_perfil", "Perfil de diversidade");
+      rel(T.diversidade);
+      h3("4. Estrutura da comunidade");
+      fig("estc_ranking", "Curva de ranking de abundância"); fig("estc_dajoz", "Constância de ocorrência (Dajoz)");
+      const DJ = arr(C.dajoz);
+      if (DJ.length) tabela(s9, "estc_dajoz", "Constância de ocorrência (Dajoz)", [{t:"Categoria", k:"c"}].concat(rot.map(e => ({t:e, f:x => DJ.filter(d => d.estacao === e && d.categoria === x.c).length, num:1}))), ["Acidental", "Acessória", "Constante"].map(c => ({c})));
+      h3("5. Comparação pareada por ponto");
+      const PA = arr(C.pareada);
+      if (PA.length) tabela(s9, "estc_pareada", "Comparação pareada por ponto (pontos visitados nas duas campanhas)", [{t:"Variável", k:"variavel"}, {t:"Média " + (rot[0] || "").toLowerCase(), f:x => n_(x.media_a, 1), num:1}, {t:"Média " + (rot[1] || "").toLowerCase(), f:x => n_(x.media_b, 1), num:1}, {t:`Razão ${(rot[1] || "").toLowerCase()}/${(rot[0] || "").toLowerCase()}`, f:x => n_(x.razao, 2), num:1}, {t:"IC 95%", f:x => `${n_(x.li, 2)} – ${n_(x.ls, 2)}`, num:1}, {t:"p (GLMM)", f:x => pv(x.p_glmm), num:1}, {t:"p (Wilcoxon)", f:x => pv(x.p_wilcoxon), num:1}], PA);
+      else s9.appendChild(el("p", {class:"pergunta"}, "A comparação pareada precisa de pelo menos 4 pontos com registro visitados nas duas campanhas."));
+      fig("estc_pareada", "Riqueza e abundância por ponto (pareada)", arr(C.pareada_pontos).length >= 2);
+      rel(T.pareada);
+      h3("6. Composição e diversidade beta");
+      const PM = arr(C.permanova);
+      if (PM.length) tabela(s9, "estc_permanova", "PERMANOVA e PERMDISP (permutação " + esc(C.permutacao || "") + ")", [{t:"Teste", k:"teste"}, {t:"gl", k:"gl", num:1}, {t:"F", f:x => n_(x.F, 2), num:1}, {t:"R²", f:x => n_(x.R2, 2), num:1}, {t:"p", f:x => pv(x.p), num:1}], PM.concat(C.nmds ? [{teste:"Stress do NMDS", gl:"", F:C.nmds.stress}] : []));
+      fig("estc_nmds", "Ordenação NMDS (Bray-Curtis)", !!C.nmds);
+      const SP = arr(C.simper);
+      if (SP.length) tabela(s9, "estc_simper", "SIMPER: espécies que mais diferenciam as estações", [{t:"Espécie", f:x => esc(x.especie), csv:x => x.especie, esp:1}, {t:"Contribuição", f:x => pc(x.contribuicao, 1), num:1}, {t:"Acumulada", f:x => pc(x.acumulada, 1), num:1}, {t:"Mais abundante na", k:"mais_em"}], SP);
+      fig("estc_simper", "Espécies que mais diferenciam as estações (SIMPER)", SP.length > 0);
+      const BS = arr(C.baselga);
+      if (BS.length) tabela(s9, "estc_baselga", "Diversidade beta de Baselga (Sørensen)", [{t:"Escala", k:"escala"}, {t:"Sørensen", f:x => n_(x.sorensen, 3), num:1}, {t:"Substituição", f:x => n_(x.substituicao, 3), num:1}, {t:"Aninhamento", f:x => n_(x.aninhamento, 3), num:1}], BS.concat(C.upgma ? [{escala:"Correlação cofenética (UPGMA)", sorensen:C.upgma.cofenetica}] : []));
+      fig("estc_baselga", "Diversidade beta entre estações", BS.length > 0); fig("estc_upgma", "Agrupamento das unidades (UPGMA)", !!C.upgma);
+      rel(T.composicao);
+      // o que só existia na seção Campanhas (24/11/2026): espécies em comum e exclusivas, com a abundância, e famílias
+      const CC = G.campanhas;
+      if (CC && campJunto(G)){
+        const cods = arr(CC.resumo).map(c => c.codigo);
+        h3("7. Espécies em comum e exclusivas");
+        fig("campanhas", cods.length === 2 ? "Espécies registradas nas duas campanhas" : "Espécies registradas em mais de uma campanha", arr(CC.compartilhadas).length > 0);
+        cods.slice(0, 4).forEach((c, i) => fig("campanhas_so_" + (i + 1), `Espécies registradas só na ${c.toLowerCase()}`, arr(CC.exclusivas).some(r => r.campanha === c)));
+        tabela(s9, "campanhas_especies", "Espécies e abundância em cada campanha", [{t:"Família", k:"familia"}, {t:"Espécie", f:r => esc(r.especie), csv:r => r.especie, esp:1}].concat(cods.map(c => ({t:c, f:r => r[c] || "–", num:1}))).concat([{t:"Em", k:"em"}]), arr(CC.especies), true);
+        fig("campanhas_familias", "Espécies por família em cada campanha");
+        tabela(s9, "campanhas_familias", "Famílias em cada campanha", [{t:"Família", k:"familia"}].concat(cods.flatMap(c => [{t:"Espécies " + c, f:r => r["S_" + c] || "–", num:1}, {t:"Indivíduos " + c, f:r => r["N_" + c] || "–", num:1}])).concat([{t:"Em", k:"em"}]), arr(CC.familias));
+      }
+      h3((CC && campJunto(G) ? "8" : "7") + ". Espécies indicadoras");
+      const IV = arr(C.indval);
+      if (IV.length){ tabela(s9, "estc_indval", "IndVal (999 permutações dentro do ponto; p < 0,05)", [{t:"Espécie", f:x => esc(x.especie), csv:x => x.especie, esp:1}, {t:"Estação", k:"grupo"}, {t:"A", f:x => n_(x.A, 2), num:1}, {t:"B", f:x => n_(x.B, 2), num:1}, {t:"IndVal", f:x => n_(100 * x.indval, 1), num:1}, {t:"p", f:x => pv(x.p), num:1}], IV);
+        fig("estc_indval", "Espécies indicadoras (IndVal)"); rel(T.indval); }
+      else s9.appendChild(el("p", {class:"pergunta"}, "Nenhuma espécie indicadora com p < 0,05 (IndVal com permutação dentro do ponto)."));
+      rel(T.cuidados, "Cuidados no relatório");
+    }
+  }
+
   // ---- Campanhas (só com 2 ou mais)
-  if (G.campanhas){
+  if (G.campanhas && !campJunto(G)){   // chuva e seca: tudo em "Seca e chuva"
     const C = G.campanhas, cods = arr(C.resumo).map(c => c.codigo);
-    const s8 = secao("campanhas", "Comparação entre campanhas", "Cada ponto em cada campanha conta como uma unidade amostral (" + arr(C.resumo).map(c => `<b>${esc(c.codigo)}</b> ${esc(c.campanha)}`).join(" · ") + ").");
-    const sub8 = store.get("herp.sub8", "composicao");
-    abas(s8, [["composicao","Espécies em comum"],["pontos","Cada ponto"],["especies","Lista por campanha"],["nmds","Ordenação e PERMANOVA"]], sub8, v => { store.set("herp.sub8", v); render(); });
-    if (sub8 === "composicao"){ figuraR(s8, "campanhas", "Comparação entre campanhas"); texto(s8, C.texto);
-      tabela(s8, "campanhas_resumo", "Resumo por campanha", [{t:"Código", k:"codigo"}, {t:"Campanha", k:"campanha"}, {t:"Espécies", k:"riqueza", num:1}, {t:"Indivíduos", k:"individuos", num:1}, {t:"Pontos com registro", k:"pontos_com_registro", num:1}, {t:"Exclusivas", k:"exclusivas", num:1}], arr(C.resumo));
-      tabela(s8, "campanhas_pares", "Pares de campanhas", [{t:"Par", f:r => `${r.campanha_a} × ${r.campanha_b}`}, {t:"Em comum", k:"comuns", num:1}, {t:"Só na 1ª", k:"so_a", num:1}, {t:"Só na 2ª", k:"so_b", num:1}, {t:"Jaccard", f:r => nf(r.jaccard, 2), num:1}, {t:"Sørensen", f:r => nf(r.sorensen, 2), num:1}, {t:"Bray-Curtis (sim.)", f:r => nf(r.bray_curtis_sim, 2), num:1}], arr(C.pares)); }
+    const s8 = secao("campanhas", "Comparação entre campanhas: " + cods.map(esc).join(" × "), "Cada campanha analisada como um todo: descritiva, espécies exclusivas e compartilhadas, curva de acumulação, estimadores (Chao 2, Jackknife, Bootstrap), diversidade e dominância. Nas outras seções cada ponto soma todas as campanhas.");
+    const ABAS8 = [["descritiva","Descritiva"],["exclusivas","Exclusivas e compartilhadas"],["curvas","Curva e estimadores"],["diversidade","Diversidade e dominância"],["pontos","Cada ponto"],["especies","Lista por campanha"],["nmds","Ordenação dos pontos"]];
+    let sub8 = store.get("herp.sub8", "descritiva"); if (!ABAS8.some(a => a[0] === sub8)) sub8 = "descritiva";
+    abas(s8, ABAS8, sub8, v => { store.set("herp.sub8", v); render(); });
+    const listaEsp = (id, titulo, linhas, extra) => tabela(s8, id, titulo, [{t:"Família", k:"familia"}, {t:"Espécie", f:r => esc(r.especie), csv:r => r.especie, esp:1}].concat(extra), linhas, true);
+    if (sub8 === "descritiva"){ texto(s8, C.texto);
+      tabela(s8, "campanhas_resumo", "Descritiva de cada campanha", [{t:"Campanha", k:"campanha"}, {t:"Espécies", k:"riqueza", num:1}, {t:"Famílias", k:"familias", num:1}, {t:"Indivíduos", k:"individuos", num:1}, {t:"Pontos amostrados", k:"pontos_amostrados", num:1}, {t:"Pontos com registro", k:"pontos_com_registro", num:1}, {t:"Exclusivas", k:"exclusivas", num:1}, {t:"Compartilhadas", f:r => arr(C.compartilhadas).length, num:1}, {t:"Mais abundante", f:r => `<i>${esc(r.dominante || "–")}</i>`, csv:r => r.dominante}], arr(C.resumo));
+      tabela(s8, "campanhas_mais_abundantes", "Espécies mais abundantes (todas as campanhas)", [{t:"#", k:"posicao", num:1}, {t:"Família", k:"familia"}, {t:"Espécie", f:r => esc(r.especie), csv:r => r.especie, esp:1}].concat(cods.map(c => ({t:c, f:r => r[c] || "–", num:1}))).concat([{t:"Total", k:"total", num:1}, {t:"Relativa", f:r => pc(r.relativa, 1), num:1}, {t:"Em", k:"em"}]), arr(C.mais_abundantes).slice(0, 15), true);
+      figuraR(s8, "campanhas_familias", "Espécies por família em cada campanha");
+      tabela(s8, "campanhas_familias", "Famílias em cada campanha", [{t:"Família", k:"familia"}].concat(cods.flatMap(c => [{t:"Espécies " + c, f:r => r["S_" + c] || "–", num:1}, {t:"Indivíduos " + c, f:r => r["N_" + c] || "–", num:1}])).concat([{t:"Em", k:"em"}]), arr(C.familias)); }
+    else if (sub8 === "exclusivas"){   // 24/11/2026: três figuras (em comum e só em cada campanha), cada espécie com a abundância
+      if (arr(C.compartilhadas).length) figuraR(s8, "campanhas", cods.length === 2 ? "Espécies registradas nas duas campanhas" : "Espécies registradas em mais de uma campanha");
+      cods.slice(0, 4).forEach((c, i) => { if (arr(C.exclusivas).some(r => r.campanha === c)) figuraR(s8, "campanhas_so_" + (i + 1), `Espécies registradas só na campanha ${c}`); });
+      cods.forEach(c => { const L = arr(C.exclusivas).filter(r => r.campanha === c);
+        listaEsp("campanhas_exclusivas_" + c, `Exclusivas da campanha ${c} (${L.length})`, L, [{t:"Indivíduos", k:"individuos", num:1}]); });
+      listaEsp("campanhas_compartilhadas", `Compartilhadas: registradas em todas as campanhas (${arr(C.compartilhadas).length})`, arr(C.compartilhadas), cods.map(c => ({t:"Indivíduos " + c, k:c, num:1})));
+      tabela(s8, "campanhas_pares", "Semelhança entre as campanhas", [{t:"Par", f:r => `${r.campanha_a} × ${r.campanha_b}`}, {t:"Em comum", k:"comuns", num:1}, {t:"Só na 1ª", k:"so_a", num:1}, {t:"Só na 2ª", k:"so_b", num:1}, {t:"Jaccard", f:r => nf(r.jaccard, 2), num:1}, {t:"Sørensen", f:r => nf(r.sorensen, 2), num:1}, {t:"Bray-Curtis (sim.)", f:r => nf(r.bray_curtis_sim, 2), num:1}], arr(C.pares)); }
+    else if (sub8 === "curvas"){ figuraR(s8, "campanhas_curvas", "Curva de acumulação de cada campanha"); figuraR(s8, "campanhas_rarefacao", "Rarefação e extrapolação de cada campanha (iNEXT)"); figuraR(s8, "campanhas_estimadores", "Estimadores de riqueza de cada campanha");
+      const E = arr(C.estimadores), nomes = [...new Set(E.map(r => r.estimador))];
+      const linhas = nomes.map(n => { const o = {estimador:n}; cods.forEach(c => { const r = E.find(x => x.estimador === n && x.campanha === c) || {}; o["v_" + c] = r.valor; o["e_" + c] = r.ep; o["c_" + c] = r.completude; }); return o; });
+      tabela(s8, "campanhas_estimadores", "Riqueza observada e estimada de cada campanha (unidades: pontos da campanha)", [{t:"Estimador", k:"estimador"}].concat(cods.flatMap(c => [{t:c, f:r => r["v_" + c] == null ? "–" : nf(r["v_" + c], 1) + (r["e_" + c] == null ? "" : " ± " + nf(r["e_" + c], 1)), num:1}, {t:"Completude " + c, f:r => r["c_" + c] == null ? "–" : pc(r["c_" + c], 0), num:1}])), linhas); }
+    else if (sub8 === "diversidade"){
+      if (arr(C.indices).length) tabela(s8, "campanhas_indices", "Diversidade de cada campanha (pontos da campanha somados)", [{t:"Medida", k:"medida"}].concat(cods.map(c => ({t:c, f:r => nf(r[c], 3), num:1}))), arr(C.indices));
+      if (C.hutcheson && arr(C.hutcheson.pares).length) tabela(s8, "campanhas_hutcheson", "Diversidade de Shannon: teste t de Hutcheson entre as campanhas", [{t:"Par", f:r => r.campanha_a + " × " + r.campanha_b}, {t:"H' 1ª", f:r => nf(r.H_a, 3), num:1}, {t:"H' 2ª", f:r => nf(r.H_b, 3), num:1}, {t:"t", f:r => nf(r.t, 2), num:1}, {t:"gl", f:r => nf(r.gl, 1), num:1}, {t:"p", f:r => nf(r.p, 4), num:1}, {t:"Resultado", k:"diferenca"}], arr(C.hutcheson.pares));
+      figuraR(s8, "campanhas_dominancia", "Curva de dominância de cada campanha");
+      tabela(s8, "campanhas_dominancia", "Dominância: as 5 espécies mais abundantes de cada campanha", [{t:"Campanha", k:"campanha"}, {t:"#", k:"posicao", num:1}, {t:"Espécie", f:r => esc(r.especie), csv:r => r.especie, esp:1}, {t:"Indivíduos", k:"individuos", num:1}, {t:"Relativa", f:r => pc(r.relativa, 1), num:1}, {t:"Pontos", k:"pontos", num:1}], arr(C.dominancia).filter(r => r.posicao <= 5), true); }
     else if (sub8 === "pontos"){ figuraR(s8, "campanhas_pontos", "Riqueza de cada ponto nas campanhas");
-      tabela(s8, "campanhas_pontos", "Cada ponto nas campanhas", [{t:"Ponto", k:"ponto"}].concat(cods.flatMap(c => [{t:"Espécies " + c, k:"S_" + c, num:1}, {t:"Indivíduos " + c, k:"N_" + c, num:1}])).concat([{t:"Em comum", k:"comuns", num:1}, {t:"Jaccard", f:r => nf(r.jaccard, 2), num:1}]), arr(C.por_ponto)); }
+      tabela(s8, "campanhas_pontos", "Riqueza e abundância de cada ponto em cada campanha (pontos sem registro não entram)", [{t:"Ponto", k:"ponto"}].concat(cods.flatMap(c => [{t:"Riqueza " + c, f:r => r["S_" + c] || "–", num:1}, {t:"Abundância " + c, f:r => r["N_" + c] || "–", num:1}])).concat([{t:"Em comum", k:"comuns", num:1}, {t:"Jaccard", f:r => nf(r.jaccard, 2), num:1}]), arr(C.por_ponto)); }
     else if (sub8 === "especies"){ figuraR(s8, "campanhas_especies", "Espécies registradas em cada campanha");
       tabela(s8, "campanhas_especies", "Espécies por campanha", [{t:"Família", k:"familia"}, {t:"Espécie", f:r => esc(r.especie), csv:r => r.especie, esp:1}].concat(cods.map(c => ({t:c, f:r => r[c] || "–", num:1}))).concat([{t:"Em", k:"em"}]), arr(C.especies), true); }
     else { if (G.nmds && G.nmds.pontos){ figuraR(s8, "nmds", "Ordenação NMDS"); texto(s8, G.nmds.texto); } else s8.appendChild(el("p", {class:"pergunta"}, esc((G.nmds || {}).pulado || "")));
@@ -2034,14 +2163,17 @@ function valorMenu(id){
     if (id === "similaridade") { const p = arr((G.similaridade || {}).pares); return p.length ? "J " + nf(p.reduce((a, r) => a + (r.jaccard || 0), 0) / p.length, 2) : ""; }
     if (id === "fitofisionomias") return G.fitofisionomias ? String(arr(G.fitofisionomias.classes.tabela).length) : "";
     if (id === "campanhas") return G.campanhas ? String(arr(G.campanhas.resumo).length) : "";
+    if (id === "estacoes") return G.estacoes ? arr(G.estacoes.resumo).map(r => r.riqueza).join(" × ") : "";
     if (id === "relatorio") return SEL.length ? String(SEL.length) : "";
     if (id === "laudo") return G.relatorio && G.relatorio.interesse ? `${arr(G.relatorio.interesse).length} sp.` : "";
   } catch (e) {}
   return "";
 }
+// 24/11/2026 (pedido do usuário): campanhas de chuva e seca ficam só em "Seca e chuva"; a seção Campanhas some (era repetida)
+function campJunto(G){ const Ee = arr(((G || {}).estacoes || {}).estacoes); return !!(G && G.campanhas && Ee.length && Ee.every(x => x.tipo === "chuva" || x.tipo === "seca")); }
 function montaMenu(){
   const nav = $("#indice"); nav.innerHTML = "";
-  SECOES.filter(([id]) => (id !== "laudo" || (H.grupos[grupo] || {}).relatorio) && (id !== "campanhas" || (H.grupos[grupo] || {}).campanhas) && (id !== "fitofisionomias" || (H.grupos[grupo] || {}).fitofisionomias)).forEach(([id, nome, faz], i) => {
+  SECOES.filter(([id]) => (id !== "laudo" || (H.grupos[grupo] || {}).relatorio) && (id !== "campanhas" || ((H.grupos[grupo] || {}).campanhas && !campJunto(H.grupos[grupo]))) && (id !== "estacoes" || (H.grupos[grupo] || {}).estacoes) && (id !== "fitofisionomias" || (H.grupos[grupo] || {}).fitofisionomias)).forEach(([id, nome, faz], i) => {
     const extra = id === "relatorio" && SEL.length ? ` (${SEL.length})` : "";
     const a = el("a", {href:"#" + id, class: id === aba ? "ativo" : "", title: faz}, `<span class="n">${i + 1}</span><span class="nome">${esc(nome)}<small>${esc(faz)}</small></span><span class="val">${esc(valorMenu(id))}</span>`);
     a.onclick = ev => { ev.preventDefault(); aba = id; history.replaceState(null, "", "#" + id); $("#menu").classList.remove("aberto"); montaMenu(); mostraAba(); scrollTo(0, 0); setTimeout(() => document.querySelectorAll(".abas").forEach(x => x._ajusta && x._ajusta()), 0); };

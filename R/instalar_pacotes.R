@@ -5,7 +5,7 @@ lib  <- if (nzchar(Sys.getenv("HERP_RLIB"))) Sys.getenv("HERP_RLIB") else file.p
 repo <- "https://packagemanager.posit.co/cran/2026-11-16"   # foto do CRAN de 16/11/2026: todos instalam as mesmas versões
 dir.create(lib, recursive = TRUE, showWarnings = FALSE)
 .libPaths(c(lib, .libPaths()))
-pkgs <- c("vegan", "iNEXT", "ggplot2", "readxl", "writexl", "jsonlite", "base64enc")  # ggpattern é opcional: só o tema "Síntese" usa as hachuras
+pkgs <- c("vegan", "iNEXT", "ggplot2", "readxl", "writexl", "jsonlite", "base64enc", "glmmTMB", "cowplot")   # glmmTMB e cowplot: modo Seca e chuva (24/11/2026)  # ggpattern é opcional: só o tema "Síntese" usa as hachuras
 falta <- pkgs[!vapply(pkgs, requireNamespace, TRUE, quietly = TRUE)]
 if (length(falta)) {
   cat("[ 55%] Baixando e instalando:", paste(falta, collapse = ", "), "(e o que eles precisam). Leva alguns minutos.\n")
